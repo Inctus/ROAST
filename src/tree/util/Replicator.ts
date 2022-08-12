@@ -9,17 +9,21 @@ export class Replicator {
 
     public Clear(): Replicator {
 
+        return this;
     }
 
     public Remove(): Replicator {
 
+        return this;
     }
 
     public SetMode(mode: ReplicationMode): Replicator {
 
+        return this;
     }
 
     public SetPredicate(func: (plr: Player, node: StateNode) => boolean): Replicator {
 
+        return this;
     }
 }
