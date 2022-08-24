@@ -20,8 +20,15 @@ const STATES = ROAST.CreateDefinitions({
 	}),
 });
 
-STATES.GetScope("Client").GetPlayer(Players.LocalPlayer).Get("Health");
+STATES.GetRoot("Client").GetPlayer(Players.LocalPlayer).Get("Health");
 
-STATES.GetScope("Public").Get("Mobs").Add();
+STATES.GetRoot("Public").Get("Mobs");
+
+STATES.GetRoot("Public")
+	.Get("Mobs")
+	.Subscribe(
+		(subtree) => {},
+		(subtree) => {},
+	);
 
 Players.LocalPlayer;

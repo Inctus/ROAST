@@ -4,7 +4,9 @@
   "description": "",
   "main": "out/init.lua",
   "dependencies": {
+    "@rbxts/bridgenet": "^1.9.10",
     "@rbxts/net": "^3.0.3",
+    "@rbxts/services": "^1.5.1",
     "roblox-ts": "^1.3.3"
   },
   "devDependencies": {

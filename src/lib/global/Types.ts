@@ -1,3 +1,3 @@
-import { ChildCapableStateNode, StateNode } from "../tree/StateNode";
+import { StateNode } from "../tree/nodes/StateNode";
 
-export type StateTreeDefinition = Record<string, ChildCapableStateNode | StateNode>;
+export type StateTreeDefinition = Record<string, StateNode>;

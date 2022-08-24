@@ -1,3 +1,3 @@
-import { ChildCapableStateNode, StateNode } from "./StateNode";
+import { StateNode } from "./nodes/StateNode";
 
-export { StateNode, ChildCapableStateNode };
+export { StateNode };

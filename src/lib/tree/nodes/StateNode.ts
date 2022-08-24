@@ -1,29 +1,19 @@
-import { StateTreeDefinition } from "../global/Types";
+import { StateTreeDefinition } from "../../global/Types";
+import { Replication } from "../replication";
 
 export abstract class StateNode {
 	public Parent: StateNode | null = null;
 
 	constructor() {}
 
+	/**
+	 * **WARNING**: Do not use this.
+	 */
 	public setParent(parent: StateNode) {
 		this.Parent = parent;
 	}
-}
 
-export abstract class ChildCapableStateNode extends StateNode {
-	public Children: StateTreeDefinition;
-
-	constructor(children: StateTreeDefinition = {}) {
-		super();
-
-		this.Children = children;
-	}
-
-	public Get(key: string) {
-		return this.Children[key];
-	}
-
-	public computeChildren() {}
+	private replicator = new Replication.ReplicationOptions(this);
 }
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
@@ -33,15 +23,9 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 
 		this.paths = paths;
 	}
+
 	public Get<K extends keyof T & string>(key: K): T[K] {
 		return this.paths[key];
-	}
-}
-
-class Branch<T extends StateTreeDefinition> extends IndexableNode<T> {
-	constructor(paths: T) {
-		super(paths);
-		this.paths = paths;
 	}
 }
 

@@ -1,10 +1,14 @@
-import { StateNode } from "../StateNode";
+import { StateNode } from "./StateNode";
 
-export class Leaf<T> extends StateNode {
-	private value: T;
+export class LeafNode<T> extends StateNode {
+	private value: T | undefined;
 
-	constructor(value: T) {
+	constructor(value: T | undefined) {
 		super();
 		this.value = value;
+	}
+
+	public GetValue(): Promise<T> {
+		return new Promise((res, rej) => {});
 	}
 }
