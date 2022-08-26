@@ -24,5 +24,10 @@ export class VineNode<T extends StateTreeDefinition, R extends unknown[]> extend
 		return Nodes.Branch(this.template_children(...args));
 	}
 
-	public Subscribe() {}
+	/**
+	 * **VERY IMPORTANT**:
+	 *
+	 * Do NOT visit parent nodes of the subtree you are subscribing to.
+	 */
+	public Subscribe(added: (subtree: T) => void, removed: (subtree: T) => void) {}
 }

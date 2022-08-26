@@ -83,7 +83,14 @@ export namespace Replication {
 				return false;
 			}
 			if (this.scope === ScopeIndex.PUBLIC_CLIENT) {
+				// TODO: Allow to write sometimes.
 				return true;
+			}
+			if (this.scope === ScopeIndex.PRIVATE_CLIENT) {
+				return true;
+			}
+			if (this.scope === ScopeIndex.NEED_TO_KNOW) {
+				return false; // TODO: Fix this.
 			}
 		}
 	}
