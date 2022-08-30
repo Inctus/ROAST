@@ -5,16 +5,17 @@ import { StateNode } from "../nodes/StateNode";
 
 export namespace Replication {
 	export class ReplicationOptions {
-		mode: ReplicationMode = ReplicationMode.All;
-		scope: ScopeIndex = ScopeIndex.PUBLIC_SERVER;
+		private mode: ReplicationMode = ReplicationMode.All;
 
-		owner: StateNode;
-		scopeOwner?: Player;
+		private scope: ScopeIndex = ScopeIndex.PUBLIC_SERVER;
+		private scopeOwner?: Player;
 
-		whitelist: Player[] = [];
-		blacklist: Player[] = [];
+		private owner: StateNode;
 
-		predicate: (plr: Player) => boolean = () => true;
+		private whitelist: Player[] = [];
+		private blacklist: Player[] = [];
+
+		private predicate: (plr: Player) => boolean = () => true;
 
 		public constructor(owner: StateNode) {
 			this.owner = owner;
@@ -24,8 +25,16 @@ export namespace Replication {
 			this.mode = mode;
 		}
 
+		public getMode() {
+			this.mode;
+		}
+
 		public setScope(scope: ScopeIndex) {
 			this.scope = scope;
+		}
+
+		public getScope() {
+			return this.scope;
 		}
 
 		public setScopeOwner(plr: Player) {

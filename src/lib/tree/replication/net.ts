@@ -26,6 +26,7 @@ export namespace Packet {
 
 	export interface HandshakeToClient {
 		type: "handshake";
+		/** `data` should contain everything in the same order on client and server. */
 		data: GUID[];
 	}
 

@@ -42,7 +42,8 @@ export class RestrictedScope<T extends StateTreeDefinition> extends IndexableNod
 	}
 
 	setScope(scope: ScopeIndex) {
-		if (scope === ScopeIndex.PUBLIC_CLIENT) warn(`Please do not use ScopeIndex.PUBLIC_CLIENT`);
+		if (scope === ScopeIndex.PUBLIC_CLIENT)
+			warn(`Please do not use ScopeIndex.PUBLIC_CLIENT`);
 		this.Scope = scope;
 		return this;
 	}
@@ -62,7 +63,10 @@ export class PublicClientScope<T extends StateTreeDefinition> extends StateNode 
 		this.template_children = value;
 
 		Players.PlayerAdded.Connect((plr) => {
-			this.mapToPlayers.set(tostring(plr.UserId), Nodes.Branch(this.template_children(plr)));
+			this.mapToPlayers.set(
+				tostring(plr.UserId),
+				Nodes.Branch(this.template_children(plr)),
+			);
 		});
 	}
 

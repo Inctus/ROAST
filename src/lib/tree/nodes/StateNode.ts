@@ -2,7 +2,7 @@ import { StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
 
 export abstract class StateNode {
-	public Parent: StateNode | null = null;
+	public Parent: StateNode | undefined = undefined;
 
 	constructor() {}
 
@@ -14,6 +14,10 @@ export abstract class StateNode {
 	}
 
 	private replicator = new Replication.ReplicationOptions(this);
+
+	public getReplicator() {
+		return this.replicator;
+	}
 }
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {

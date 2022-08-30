@@ -5,7 +5,10 @@ import { StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
 import { GUID } from "../replication/net";
 
-export class VineNode<T extends StateTreeDefinition, R extends unknown[]> extends StateNode {
+export class VineNode<
+	T extends StateTreeDefinition,
+	R extends unknown[],
+> extends StateNode {
 	private template_children: (...args: R) => T;
 	private mapToID: Map<string, BranchNode<T>> = new Map<string, BranchNode<T>>();
 
