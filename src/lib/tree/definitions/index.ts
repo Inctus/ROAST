@@ -18,13 +18,22 @@ export class Definition<T extends StateTreeDefinition> {
 }
 
 export class DefinitionBuilder {
-	public static definitionTraversal(parent: StateNode, definition: StateTreeDefinition, currentScope: ScopeIndex) {
+	public static definitionTraversal(
+		parent: StateNode,
+		definition: StateTreeDefinition,
+		currentScope: ScopeIndex,
+	) {
 		for (let [i, v] of pairs(definition)) {
+			if (v instanceof RestrictedScope) {
+				currentScope = v.getScope();
+			}
+
 			v.setParent(parent);
 
 			if (v instanceof IndexableNode) {
 				DefinitionBuilder.definitionTraversal(v, v.paths, currentScope);
 			} else {
+				v.getReplicator().setScope(currentScope);
 			}
 		}
 	}
@@ -34,7 +43,9 @@ export class DefinitionBuilder {
 			if (v instanceof RestrictedScope) {
 				DefinitionBuilder.definitionTraversal(v, v.paths, v.getScope());
 			} else {
-				warn(`[ROAST] DefinitionBuilder: ${i} is not a RestrictedScope/Scope object.`);
+				warn(
+					`[ROAST] DefinitionBuilder: ${i} is not a RestrictedScope/Scope object.`,
+				);
 			}
 		}
 		return new Definition(definition);
