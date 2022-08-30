@@ -1,4 +1,5 @@
 import { StateTreeDefinition } from "../../global/Types";
+import { Serializer } from "../../util/Serializer";
 import { BranchNode } from "./Branch";
 import { LeafNode } from "./Leaf";
 import { PublicClientScope, RestrictedScope, ScopeIndex } from "./RestrictedScope";
@@ -12,6 +13,8 @@ export namespace Nodes {
 	export function Leaf<T>(val?: T): LeafNode<T> {
 		return new LeafNode<T>(val);
 	}
+
+	export function Petal<T extends Serializer>(val?: T) {}
 
 	/**
 	 * Creates a new index in the state tree. Will automatically infer and complete its
