@@ -20,14 +20,12 @@ export namespace Packet {
 
 	export interface HandshakeToServer {
 		type: "handshake";
-		scopeid: GUID;
 		/** Number of nodes. */
 		data: number;
 	}
 
 	export interface HandshakeToClient {
 		type: "handshake";
-		scopeid: GUID;
 		data: GUID[];
 	}
 
@@ -41,15 +39,15 @@ export namespace Packet {
 	}
 }
 
-let x = {
-	type: "vineupdate",
-	nodeid: "...",
-	compute: [
-		{
-			type: "add",
-			map: {
-				"GUID of the Position of that": "...",
-			},
-		},
-	],
-};
+// let x = {
+// 	type: "vineupdate",
+// 	nodeid: "...",
+// 	compute: [
+// 		{
+// 			type: "add",
+// 			map: {
+// 				"GUID of the Position of that": "...",
+// 			},
+// 		},
+// 	],
+// };
