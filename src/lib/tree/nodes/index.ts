@@ -1,5 +1,4 @@
 import { StateTreeDefinition } from "../../global/Types";
-import { Serializer } from "../../util/Serializer";
 import { BranchNode } from "./Branch";
 import { LeafNode } from "./Leaf";
 import { PublicClientScope, RestrictedScope, ScopeIndex } from "./RestrictedScope";
@@ -14,8 +13,6 @@ export namespace Nodes {
 		return new LeafNode<T>(val);
 	}
 
-	export function Petal<T extends Serializer>(val?: T) {}
-
 	/**
 	 * Creates a new index in the state tree. Will automatically infer and complete its
 	 * children. **PLEASE DO NOT USE THE GENERIC**.
@@ -27,27 +24,40 @@ export namespace Nodes {
 	/**
 	 * @private - Creates restricted scopes abstractly.
 	 */
-	function Scope<T extends StateTreeDefinition>(children: T, scope: ScopeIndex): RestrictedScope<T> {
+	function Scope<T extends StateTreeDefinition>(
+		children: T,
+		scope: ScopeIndex,
+	): RestrictedScope<T> {
 		return new RestrictedScope<T>(children).setScope(scope);
 	}
 
-	export function PublicServer<T extends StateTreeDefinition>(children: T): RestrictedScope<T> {
+	export function PublicServer<T extends StateTreeDefinition>(
+		children: T,
+	): RestrictedScope<T> {
 		return Scope(children, ScopeIndex.PUBLIC_SERVER);
 	}
 
-	export function PrivateClient<T extends StateTreeDefinition>(children: T): RestrictedScope<T> {
+	export function PrivateClient<T extends StateTreeDefinition>(
+		children: T,
+	): RestrictedScope<T> {
 		return Scope(children, ScopeIndex.PRIVATE_CLIENT);
 	}
 
-	export function PrivateServer<T extends StateTreeDefinition>(children: T): RestrictedScope<T> {
+	export function PrivateServer<T extends StateTreeDefinition>(
+		children: T,
+	): RestrictedScope<T> {
 		return Scope(children, ScopeIndex.PRIVATE_SERVER);
 	}
 
-	export function PublicClient<T extends StateTreeDefinition>(children: (plr: Player) => T): PublicClientScope<T> {
+	export function PublicClient<T extends StateTreeDefinition>(
+		children: (plr: Player) => T,
+	): PublicClientScope<T> {
 		return new PublicClientScope(children);
 	}
 
-	export function RestrictedPublic<T extends StateTreeDefinition>(children: T): RestrictedScope<T> {
+	export function RestrictedPublic<T extends StateTreeDefinition>(
+		children: T,
+	): RestrictedScope<T> {
 		return Scope(children, ScopeIndex.NEED_TO_KNOW);
 	}
 
