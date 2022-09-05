@@ -1,13 +1,15 @@
 import { StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
 
-export abstract class StateNode {
+// TODO: check if abstract is required.
+export class StateNode {
 	public Parent: StateNode | undefined = undefined;
 
 	constructor() {}
 
 	/**
 	 * **WARNING**: Do not use this.
+	 * @hidden
 	 */
 	public setParent(parent: StateNode) {
 		this.Parent = parent;
@@ -15,8 +17,12 @@ export abstract class StateNode {
 
 	private replicator = new Replication.ReplicationOptions(this);
 
-	public getReplicator() {
+	public GetReplicator() {
 		return this.replicator;
+	}
+
+	public SetMiddleware(): this {
+		return this;
 	}
 }
 
@@ -32,5 +38,3 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 		return this.paths[key];
 	}
 }
-
-export abstract class ValueCapableStateNode extends StateNode {}

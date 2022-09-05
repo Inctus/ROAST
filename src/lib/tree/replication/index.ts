@@ -1,7 +1,64 @@
 import { RunService } from "@rbxts/services";
+import { ROAST } from "../../..";
 import { ReplicationMode } from "../../global/Enums";
+import { Definition } from "../definitions";
+import { BranchNode } from "../nodes/Branch";
+import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
 import { StateNode } from "../nodes/StateNode";
+
+export type SubscriptionRejected = (reason: string) => void;
+export type SubscriptionResolved = (e: any) => void;
+export type NodeSubscriptionFunction<T> = (val: T) => void;
+
+enum subtype {
+	THEN,
+	CATCH,
+	FAILED
+}
+
+export type KeyedHandler<T> = [subtype, T];
+
+export class Middleware<T> {
+	public readonly name = "";
+
+	public constructor(name: string, handler: (LeafNode<T>) => void) {
+ 
+	}
+}
+
+export class NodeSubscription<V, T extends LeafNode<V>> {
+	readonly middleware: Array<Middleware> = new Array();
+	handlers: KeyedHandler<NodeSubscriptionFunction<T>>[] = [];
+
+	/** @hidden */
+	public fire() {}
+}
+
+export class NodeSubscriptionBuilder {
+	public static build() {
+		return new NodeSubscription();
+	}
+}
+
+
+Node.Subscribe([ROAST.SanityCheck.Position]);
+
+let sub = NodeSubscriptionBuilder.build()
+.then()
+.catch()
+
+
+
+
+
+	// .Subscribe([ROAST.SanityCheck.Position])
+	// .then((val: LeafNode<number>) => {
+	// 	let 
+	// })
+	// .catch(() => {})
+	// .then()
+	// .then();
 
 export namespace Replication {
 	export class ReplicationOptions {
@@ -40,6 +97,8 @@ export namespace Replication {
 		public setScopeOwner(plr: Player) {
 			this.scopeOwner = plr;
 		}
+
+		public addSubscription() {}
 
 		/** @server @hidden */
 		public _internal_shouldReplicateFor(plr: Player) {
