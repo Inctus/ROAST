@@ -14,7 +14,7 @@ export type NodeSubscriptionFunction<T> = (val: T) => void;
 enum subtype {
 	THEN,
 	CATCH,
-	FAILED
+	FAILED,
 }
 
 export type KeyedHandler<T> = [subtype, T];
@@ -22,43 +22,61 @@ export type KeyedHandler<T> = [subtype, T];
 export class Middleware<T> {
 	public readonly name = "";
 
-	public constructor(name: string, handler: (LeafNode<T>) => void) {
- 
-	}
+	public constructor(name: string, handler: (node: LeafNode<T>) => void) {}
+}
+
+interface Receiver<T> {
+	then<X>(v: (val: T) => X): Receiver<X>;
+
+	catch<X>(v: (err: string) => X): Receiver<X>;
 }
 
 export class NodeSubscription<V, T extends LeafNode<V>> {
-	readonly middleware: Array<Middleware> = new Array();
+	readonly middleware: Array<Middleware<any>> = new Array();
 	handlers: KeyedHandler<NodeSubscriptionFunction<T>>[] = [];
 
 	/** @hidden */
 	public fire() {}
-}
 
-export class NodeSubscriptionBuilder {
-	public static build() {
-		return new NodeSubscription();
+	public then<X>(v: (val: V) => X): Receiver<X> {
+		return this as unknown as Receiver<X>;
+	}
+
+	public catch<X>(v: (err: string) => X): Receiver<X> {
+		return this as unknown as Receiver<X>;
 	}
 }
 
+export class NodeSubscriptionBuilder {
+	public static build<V>() {
+		return new NodeSubscription<V, LeafNode<V>>();
+	}
+}
 
-Node.Subscribe([ROAST.SanityCheck.Position]);
+let sub = NodeSubscriptionBuilder.build<boolean>()
+	.then((v: boolean) => {
+		return 10;
+	})
+	.then((n: number) => {
+		return "hello";
+	})
+	.then((v: string) => {
+		throw "E!";
+	})
+	.catch((err: string) => {
+		return 10;
+	})
+	.then((n: number) => {
+		return 30;
+	});
 
-let sub = NodeSubscriptionBuilder.build()
-.then()
-.catch()
-
-
-
-
-
-	// .Subscribe([ROAST.SanityCheck.Position])
-	// .then((val: LeafNode<number>) => {
-	// 	let 
-	// })
-	// .catch(() => {})
-	// .then()
-	// .then();
+// .Subscribe([ROAST.SanityCheck.Position])
+// .then((val: LeafNode<number>) => {
+// 	let
+// })
+// .catch(() => {})
+// .then()
+// .then();
 
 export namespace Replication {
 	export class ReplicationOptions {
