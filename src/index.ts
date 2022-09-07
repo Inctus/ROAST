@@ -1,5 +1,4 @@
 import { DefaultMode, ReplicationMode } from "./lib/global/Enums";
-import { StateTreeDefinition } from "./lib/global/Types";
 import { StateNode } from "./lib/tree";
 import { Definition, DefinitionBuilder } from "./lib/tree/definitions";
 
@@ -7,7 +6,6 @@ import { Definition, DefinitionBuilder } from "./lib/tree/definitions";
  * ENUM Collection.
  */
 export { DefaultMode, ReplicationMode };
-export {};
 
 export namespace ROAST {
 	/** @hidden */
