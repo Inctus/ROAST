@@ -3,14 +3,14 @@ import { Nodes } from ".";
 import { StateTreeDefinition } from "../../global/Types";
 import { StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
-import { GUID } from "../replication/net";
+import { NodeID } from "../../global/Types";
 
 export class VineNode<
 	T extends StateTreeDefinition,
 	R extends unknown[],
 > extends StateNode {
 	private template_children: (...args: R) => T;
-	private mapToID: Map<string, BranchNode<T>> = new Map<string, BranchNode<T>>();
+	private mapToID: Map<NodeID, BranchNode<T>> = new Map<NodeID, BranchNode<T>>();
 
 	constructor(value: (...args: R) => T) {
 		super();
@@ -19,7 +19,7 @@ export class VineNode<
 	}
 
 	/** @deprecated */
-	public Get(str: GUID): BranchNode<T> {
+	public Get(str: NodeID): BranchNode<T> {
 		return this.mapToID.get(str) as BranchNode<T>;
 	}
 
