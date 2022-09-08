@@ -1,10 +1,14 @@
 import { NodeID } from "../../global/Types";
 
 export namespace Packet {
+	export interface UnsignedSubscribe {
+		type: "subscribe";
+	}
+
 	export interface Subscribe {
 		type: "subscribe";
-		// The List of NodeIDs to subscribe to
-		requests: NodeID[];
+		// The NodeID being subscribed to
+		nodeid: NodeID;
 	}
 
 	/**
@@ -13,20 +17,27 @@ export namespace Packet {
 	 * @param requests The List of NodeIDs to subscribe to
 	 * @returns A Wrapped Subscribe Packet
 	 */
-	export function Subscribe(requests: NodeID[]): Wrapped<Subscribe> {
+	export function Subscribe(): Wrapped<UnsignedSubscribe> {
 		return {
 			targets: ["server"],
 			packet: {
 				type: "subscribe",
-				requests: requests,
 			},
 		};
 	}
 
+	export interface UnsignedUpdate {
+		type: "update";
+		// The new value of the Node
+		value: any;
+	}
+
 	export interface Update {
 		type: "update";
-		// A Map of NodeIDs to new values
-		updates: Record<NodeID, any>;
+		// The NodeID being updated
+		nodeid: NodeID;
+		// The new value of the Node
+		value: any;
 	}
 
 	/**
@@ -38,13 +49,13 @@ export namespace Packet {
 	 */
 	export function Update(
 		targets: NetworkTarget[],
-		updates: Record<NodeID, any>,
-	): Wrapped<Update> {
+		value: any,
+	): Wrapped<UnsignedUpdate> {
 		return {
 			targets: targets,
 			packet: {
 				type: "update",
-				updates: updates,
+				value: value,
 			},
 		};
 	}
@@ -98,6 +109,24 @@ export namespace Packet {
 		};
 	}
 
+	export function Sign(unsigned: UnsignedPacket, nodeid: NodeID): Packet {
+		switch (unsigned.type) {
+			case "subscribe":
+				return {
+					type: "subscribe",
+					nodeid: nodeid,
+				};
+			case "update":
+				return {
+					type: "update",
+					nodeid: nodeid,
+					value: unsigned.value,
+				};
+			default:
+				return unsigned;
+		}
+	}
+
 	/**
 	 * Unwraps a list of Wrapped Packets into a map of NetworkTargets to NetworkRequests
 	 *
@@ -105,11 +134,11 @@ export namespace Packet {
 	 * @returns A map of NetworkTargets to NetworkRequests
 	 */
 	export function UnwrapPackets(
-		wrappedPackets: Wrapped<any>[],
+		wrappedPackets: Wrapped<Packet>[],
 	): Map<NetworkTarget, NetworkRequest> {
 		let contextMapped = new Map<NetworkTarget, Packet[]>();
-		for (let wrappedPacket of wrappedPackets) {
-			for (let target of wrappedPacket.targets) {
+		for (const wrappedPacket of wrappedPackets) {
+			for (const target of wrappedPacket.targets) {
 				if (!contextMapped.has(target)) {
 					contextMapped.set(target, []);
 				}
@@ -117,7 +146,7 @@ export namespace Packet {
 			}
 		}
 		let networkRequestMap = new Map<NetworkTarget, NetworkRequest>();
-		for (let [target, packets] of contextMapped) {
+		for (const [target, packets] of contextMapped) {
 			networkRequestMap.set(target, GenerateNetworkRequest(packets));
 		}
 		return networkRequestMap;
@@ -138,13 +167,11 @@ export namespace Packet {
 		for (const packet of packets) {
 			switch (packet.type) {
 				case "update": {
-					for (const [node, value] of pairs(packet.updates)) {
-						updates[node] = value;
-					}
+					updates[packet.nodeid] = packet.value;
 					break;
 				}
 				case "subscribe": {
-					subscriptions.push(...packet.requests);
+					subscriptions.push(packet.nodeid);
 					break;
 				}
 				case "handshake": {
@@ -176,17 +203,22 @@ export namespace Packet {
 		const packets: Packet[] = [];
 
 		if (request.u) {
-			packets.push({
-				type: "update",
-				updates: request.u,
-			});
+			for (const [nodeid, value] of pairs(request.u)) {
+				packets.push({
+					type: "update",
+					nodeid: nodeid,
+					value: value,
+				});
+			}
 		}
 
 		if (request.s) {
-			packets.push({
-				type: "subscribe",
-				requests: request.s,
-			});
+			for (const nodeid of request.s) {
+				packets.push({
+					type: "subscribe",
+					nodeid: nodeid,
+				});
+			}
 		}
 
 		if (request.h) {
@@ -222,9 +254,15 @@ export type Packet =
 	| Packet.Handshake
 	| Packet.HandshakeResponse;
 
+export type UnsignedPacket =
+	| Packet.UnsignedSubscribe
+	| Packet.UnsignedUpdate
+	| Packet.Handshake
+	| Packet.HandshakeResponse;
+
 export type NetworkTarget = Player | "server";
 
-export interface Wrapped<T extends Packet> {
+export interface Wrapped<T extends Packet | UnsignedPacket> {
 	targets: NetworkTarget[];
 	packet: T;
 }

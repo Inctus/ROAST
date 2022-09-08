@@ -16,7 +16,7 @@ export class Definition<T extends StateTreeDefinition> {
 		return this.internalDefinitions[key as K];
 	}
 
-	protected GetReplicatableNodes(): StateNode[] {
+	public GetReplicatableNodes(): StateNode[] {
 		let nodes: StateNode[] = [];
 		nodes.push(...this.baseReplicatableNodes);
 		//AUGUMENT THE BASE REPLICATABLE NODES WITH THE NODES FROM BERRIES ON VINES

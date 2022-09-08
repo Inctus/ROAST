@@ -1,7 +1,7 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { StateTreeDefinition } from "../../global/Types";
 import { Definition } from "../definitions";
-import { NetworkRequest, NetworkTarget, Packet, Wrapped } from "./Packet";
+import { NetworkRequest, NetworkTarget, Packet, UnsignedPacket, Wrapped } from "./Packet";
 
 export class Network<T extends StateTreeDefinition> {
 	/**
@@ -13,7 +13,7 @@ export class Network<T extends StateTreeDefinition> {
 	 * @returns A Network object that handles the networking of the State Tree
 	 */
 	private readonly remoteEvent;
-	private networkQueue: Wrapped<any>[] = [];
+	private networkQueue: Wrapped<Packet>[] = [];
 
 	// Pre: Tree is built
 	constructor(remoteEventName: string, private tree: Definition<T>) {
@@ -50,9 +50,9 @@ export class Network<T extends StateTreeDefinition> {
 	 */
 	private ProcessNetworkTick(delta: number) {
 		for (const node of this.tree.GetReplicatableNodes()) {
-			// ID NODE IS ASSIGNED A UUID YET
-			// GET NEW WRAPPED PACKETS
-			// ADD THEM TO THE NETWORK QUEUE
+			// IF THE NODE HAS AN ID THEN
+			// GRAB THE REPLICATOR'S UNSIGNED PACKET QUEUE
+			// SIGN AND APPEND THE UNSIGNED PACKETS TO THE NETWORK QUEUE
 		}
 		let networkRequestMap = Packet.UnwrapPackets(this.networkQueue);
 		for (const [target, request] of networkRequestMap) {
