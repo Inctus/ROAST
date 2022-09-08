@@ -7,7 +7,13 @@ export namespace Packet {
 		requests: NodeID[];
 	}
 
-	export function Subscribe(requests: NodeID[]): Wrapped {
+	/**
+	 * Creates a Wrapped Subscribe Packet
+	 *
+	 * @param requests The List of NodeIDs to subscribe to
+	 * @returns A Wrapped Subscribe Packet
+	 */
+	export function Subscribe(requests: NodeID[]): Wrapped<Subscribe> {
 		return {
 			targets: ["server"],
 			packet: {
@@ -23,10 +29,17 @@ export namespace Packet {
 		updates: Record<NodeID, any>;
 	}
 
+	/**
+	 * Creates a Wrapped Update Packet
+	 *
+	 * @param targets The List of Targets to send the Update Packet to
+	 * @param updates A Map of NodeIDs to new values
+	 * @returns A Wrapped Update Packet
+	 */
 	export function Update(
 		targets: NetworkTarget[],
 		updates: Record<NodeID, any>,
-	): Wrapped {
+	): Wrapped<Update> {
 		return {
 			targets: targets,
 			packet: {
@@ -42,7 +55,13 @@ export namespace Packet {
 		nodes: number;
 	}
 
-	export function Handshake(nodes: number): Wrapped {
+	/**
+	 * Creates a Wrapped Handshake Packet
+	 *
+	 * @param nodes The number of NodeIDs to expect
+	 * @returns A Wrapped Handshake Packet
+	 */
+	export function Handshake(nodes: number): Wrapped<Handshake> {
 		return {
 			targets: ["server"],
 			packet: {
@@ -58,7 +77,18 @@ export namespace Packet {
 		nodes: NodeID[];
 	}
 
-	export function HandshakeResponse(client: Player, nodes: NodeID[]): Wrapped {
+	/**
+	 * Creates a Wrapped Handshake-Response Packet
+	 *
+	 * @param client The Client to send the Handshake-Response Packet to
+	 * @param nodes A List of NodeIDs from a DFS traversal of the trees
+	 *
+	 * @returns A Wrapped Handshake-Response Packet
+	 */
+	export function HandshakeResponse(
+		client: Player,
+		nodes: NodeID[],
+	): Wrapped<HandshakeResponse> {
 		return {
 			targets: [client],
 			packet: {
@@ -68,13 +98,14 @@ export namespace Packet {
 		};
 	}
 
-	export interface Wrapped {
-		targets: NetworkTarget[];
-		packet: Packet;
-	}
-
+	/**
+	 * Unwraps a list of Wrapped Packets into a map of NetworkTargets to NetworkRequests
+	 *
+	 * @param packets The list of Wrapped Packets to unwrap
+	 * @returns A map of NetworkTargets to NetworkRequests
+	 */
 	export function UnwrapPackets(
-		wrappedPackets: Wrapped[],
+		wrappedPackets: Wrapped<any>[],
 	): Map<NetworkTarget, NetworkRequest> {
 		let contextMapped = new Map<NetworkTarget, Packet[]>();
 		for (let wrappedPacket of wrappedPackets) {
@@ -92,6 +123,12 @@ export namespace Packet {
 		return networkRequestMap;
 	}
 
+	/**
+	 * Generates a NetworkRequest from a list of Packets
+	 *
+	 * @param packets The list of Packets to generate a NetworkRequest from
+	 * @returns A NetworkRequest
+	 */
 	function GenerateNetworkRequest(packets: Packet[]): NetworkRequest {
 		let updates: Record<NodeID, any> = {};
 		let subscriptions: NodeID[] = [];
@@ -129,6 +166,12 @@ export namespace Packet {
 		};
 	}
 
+	/**
+	 * Parses a Network Request back into Packets
+	 *
+	 * @param request The Network Request to parse
+	 * @returns A list of Packets
+	 */
 	export function ParseNetworkRequest(request: NetworkRequest): Packet[] {
 		const packets: Packet[] = [];
 
@@ -179,14 +222,19 @@ export type Packet =
 	| Packet.Handshake
 	| Packet.HandshakeResponse;
 
+export type NetworkTarget = Player | "server";
+
+export interface Wrapped<T extends Packet> {
+	targets: NetworkTarget[];
+	packet: T;
+}
+
 export interface NetworkRequest {
 	u?: Record<NodeID, any>;
 	s?: NodeID[];
 	h?: number;
 	r?: NodeID[];
 }
-
-export type NetworkTarget = Player | "server";
 
 // let x = {
 // 	type: "vineupdate",

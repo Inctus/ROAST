@@ -1,11 +1,19 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { StateTreeDefinition } from "../../global/Types";
 import { Definition } from "../definitions";
-import { NetworkRequest, NetworkTarget, Packet } from "./Packet";
+import { NetworkRequest, NetworkTarget, Packet, Wrapped } from "./Packet";
 
 export class Network<T extends StateTreeDefinition> {
+	/**
+	 * Handles the Networking of the State Tree
+	 *
+	 *
+	 * @param remoteEventName The name of the RemoteEvent to use for networking
+	 * @param tree The State Tree to network
+	 * @returns A Network object that handles the networking of the State Tree
+	 */
 	private readonly remoteEvent;
-	private networkQueue: Packet.Wrapped[] = [];
+	private networkQueue: Wrapped<any>[] = [];
 
 	// Pre: Tree is built
 	constructor(remoteEventName: string, private tree: Definition<T>) {
@@ -35,7 +43,12 @@ export class Network<T extends StateTreeDefinition> {
 		RunService.Heartbeat.Connect(this.ProcessNetworkTick);
 	}
 
-	private ProcessNetworkTick() {
+	/**
+	 * Processes and Dispatches the Network Queue
+	 *
+	 * @param delta The time since the last tick
+	 */
+	private ProcessNetworkTick(delta: number) {
 		for (const node of this.tree.GetReplicatableNodes()) {
 			// ID NODE IS ASSIGNED A UUID YET
 			// GET NEW WRAPPED PACKETS
@@ -52,6 +65,12 @@ export class Network<T extends StateTreeDefinition> {
 		this.networkQueue = [];
 	}
 
+	/**
+	 * Processes a NetworkRequest
+	 *
+	 * @param request The incoming NetworkRequest to process
+	 * @param source The source of the NetworkRequest
+	 */
 	private ProcessNetworkRequest(request: NetworkRequest, source: NetworkTarget) {
 		let receivedPackets: Packet[] = Packet.ParseNetworkRequest(request);
 		for (const packet of receivedPackets) {
