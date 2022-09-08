@@ -1,19 +1,25 @@
 import { StateTreeDefinition } from "../../global/Types";
-import { Nodes } from "../nodes";
-import { BranchNode } from "../nodes/Branch";
 import { RestrictedScope, ScopeIndex } from "../nodes/RestrictedScope";
 import { IndexableNode, StateNode } from "../nodes/StateNode";
 
 export type BuiltDefinitions = {};
 
 export class Definition<T extends StateTreeDefinition> {
-	private internal_definitions: T;
+	private internalDefinitions: T;
+	//private baseReplicatableNodes: StateNode[];
+
 	public constructor(definitions: T) {
-		this.internal_definitions = definitions;
+		this.internalDefinitions = definitions;
 	}
 
 	public GetRoot<K extends keyof T>(key: K): T[K] {
-		return this.internal_definitions[key as K];
+		return this.internalDefinitions[key as K];
+	}
+
+	public GetReplicatableNodes(): StateNode[] {
+		//AUGUMENT THE BASE REPLICATABLE NODES WITH THE NODES FROM
+		//BERRIES ON VINES
+		return [];
 	}
 }
 
@@ -33,7 +39,7 @@ export class DefinitionBuilder {
 			if (v instanceof IndexableNode) {
 				DefinitionBuilder.definitionTraversal(v, v.paths, currentScope);
 			} else {
-				v.getReplicator().setScope(currentScope);
+				v.GetReplicator().setScope(currentScope);
 			}
 		}
 	}
