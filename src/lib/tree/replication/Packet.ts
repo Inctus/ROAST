@@ -109,22 +109,32 @@ export namespace Packet {
 		};
 	}
 
-	export function Sign(unsigned: UnsignedPacket, nodeid: NodeID): Packet {
+	function Sign(unsigned: UnsignedPacket, nodeID: NodeID): Packet {
 		switch (unsigned.type) {
 			case "subscribe":
 				return {
 					type: "subscribe",
-					nodeid: nodeid,
-				};
+					nodeid: nodeID,
+				} as Subscribe;
 			case "update":
 				return {
 					type: "update",
-					nodeid: nodeid,
+					nodeid: nodeID,
 					value: unsigned.value,
-				};
+				} as Update;
 			default:
 				return unsigned;
 		}
+	}
+
+	export function SignAll(
+		unsigned: Wrapped<UnsignedPacket>[],
+		nodeID: NodeID,
+	): Wrapped<Packet>[] {
+		for (const packet of unsigned) {
+			packet.packet = Sign(packet.packet, nodeID);
+		}
+		return unsigned as Wrapped<Packet>[];
 	}
 
 	/**

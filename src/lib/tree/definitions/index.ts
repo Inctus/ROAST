@@ -1,7 +1,7 @@
-import { StateTreeDefinition } from "../../global/Types";
+import { HttpService } from "@rbxts/services";
+import { NodeID, StateTreeDefinition } from "../../global/Types";
 import { RestrictedScope, ScopeIndex } from "../nodes/RestrictedScope";
 import { IndexableNode, StateNode } from "../nodes/StateNode";
-import { VineNode } from "../nodes/Vine";
 
 export type BuiltDefinitions = {};
 
@@ -14,6 +14,16 @@ export class Definition<T extends StateTreeDefinition> {
 
 	public GetRoot<K extends keyof T>(key: K): T[K] {
 		return this.internalDefinitions[key as K];
+	}
+
+	public AssignBaseNodeIDs(): NodeID[] {
+		let nodeIDs: NodeID[] = [];
+		for (const node of this.baseReplicatableNodes) {
+			let id: NodeID = HttpService.GenerateGUID(false);
+			nodeIDs.push(id);
+			node.SetID(id);
+		}
+		return nodeIDs;
 	}
 
 	public GetReplicatableNodes(): StateNode[] {

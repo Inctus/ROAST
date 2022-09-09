@@ -1,9 +1,10 @@
-import { StateTreeDefinition } from "../../global/Types";
+import { NodeID, StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
 
 // TODO: check if abstract is required.
 export class StateNode {
 	public Parent: StateNode | undefined = undefined;
+	private ID: NodeID | undefined = undefined;
 
 	constructor() {}
 
@@ -17,6 +18,14 @@ export class StateNode {
 
 	private replicator = new Replication.ReplicationOptions(this);
 
+	public GetID() {
+		return this.ID;
+	}
+
+	public SetID(id: NodeID) {
+		this.ID = id;
+	}
+
 	public GetReplicator() {
 		return this.replicator;
 	}
@@ -28,6 +37,7 @@ export class StateNode {
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
 	paths: T;
+
 	public constructor(paths: T) {
 		super();
 

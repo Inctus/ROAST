@@ -22,8 +22,8 @@ export class Network<T extends StateTreeDefinition> {
 			this.remoteEvent.Name = remoteEventName;
 			this.remoteEvent.Parent = ReplicatedStorage;
 
-			// ASSIGN NODEIDS AND SETUP HANDSHAKE RESPONSE
-			// CACHE IT
+			tree.AssignBaseNodeIDs();
+
 			this.remoteEvent.OnServerEvent.Connect((player, request) => {
 				assert(request && typeof request == "object");
 				this.ProcessNetworkRequest(request, player);
@@ -36,6 +36,7 @@ export class Network<T extends StateTreeDefinition> {
 			this.networkQueue.push(
 				Packet.Handshake(this.tree.GetReplicatableNodes().size()),
 			);
+
 			this.remoteEvent.OnClientEvent.Connect((request: NetworkRequest) => {
 				this.ProcessNetworkRequest(request, "server");
 			});
@@ -50,9 +51,12 @@ export class Network<T extends StateTreeDefinition> {
 	 */
 	private ProcessNetworkTick(delta: number) {
 		for (const node of this.tree.GetReplicatableNodes()) {
-			// IF THE NODE HAS AN ID THEN
-			// GRAB THE REPLICATOR'S UNSIGNED PACKET QUEUE
-			// SIGN AND APPEND THE UNSIGNED PACKETS TO THE NETWORK QUEUE
+			if (node.GetID()) {
+				this.networkQueue.push(
+					...Packet.SignAll(node.GetReplicator().GetNetworkQueue()),
+				);
+				node.GetReplicator().ClearNetworkQueue();
+			}
 		}
 		let networkRequestMap = Packet.UnwrapPackets(this.networkQueue);
 		for (const [target, request] of networkRequestMap) {
@@ -77,7 +81,9 @@ export class Network<T extends StateTreeDefinition> {
 			switch (packet.type) {
 				case "handshake": {
 					// IF I AM THE CLIENT, ERROR
+					// ASSERT THE NUMBER MATCHES THE NUMBER TREE HAS
 					// IF I AM THE SERVER, SEND HANDSHAKE RESPONSE
+					// USE TREE.GETBASENODEIDS() TO GET THE BASE NODE IDS
 					break;
 				}
 				case "handshake-response": {
