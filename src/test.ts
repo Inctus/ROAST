@@ -37,7 +37,13 @@ const STATES = ROAST.CreateDefinitions({
 			}),
 			Turrets: Nodes.Vine((turret: TurretSize) => {
 				return {
-					Health: Nodes.Leaf(turret === TurretSize.SMALL ? 500 : turret === TurretSize.LARGE ? 1000 : 2500),
+					Health: Nodes.Leaf(
+						turret === TurretSize.SMALL
+							? 500
+							: turret === TurretSize.LARGE
+							? 1000
+							: 2500,
+					),
 				};
 			}),
 			Jungle: Nodes.Vine((mobData: MobData) => {
@@ -46,10 +52,6 @@ const STATES = ROAST.CreateDefinitions({
 				};
 			}),
 		}),
-	}),
-
-	NEVER: Nodes.RestrictedPublic({
-		Died: Nodes.Leaf<boolean>(),
 	}),
 
 	Client: Nodes.PublicClient((plr) => {
