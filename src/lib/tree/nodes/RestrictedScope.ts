@@ -3,7 +3,6 @@ import { Nodes } from ".";
 import { StateTreeDefinition } from "../../global/Types";
 import { IndexableNode, StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
-import { VineNode } from "./Vine";
 
 export enum ScopeIndex {
 	/**
