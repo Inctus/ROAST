@@ -32,7 +32,6 @@ export class DefinitionBuilder {
 			}
 
 			node.setParent(parent);
-			node.GetReplicator().setScope(currentScope);
 
 			if (Replication.isReplicatableScope(currentScope)) {
 				replicatableNodes.push(node);

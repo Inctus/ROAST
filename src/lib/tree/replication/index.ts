@@ -1,9 +1,8 @@
-import { RunService } from "@rbxts/services";
+import { Players, RunService } from "@rbxts/services";
 import { ReplicationMode } from "../../global/Enums";
 import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
-import { StateNode } from "../nodes/StateNode";
-import { SignablePacket, Unsigned, Wrapped } from "./Packet";
+import { NetworkActor, Packet, SignablePacket, Unsigned, Wrapped } from "./Packet";
 
 export type SubscriptionRejected = (reason: string) => void;
 export type SubscriptionResolved = (e: any) => void;
@@ -99,109 +98,74 @@ export namespace Replication {
 		}
 	}
 
-	export class ReplicationOptions {
-		private mode: ReplicationMode = ReplicationMode.All;
-
-		private scope: ScopeIndex = ScopeIndex.PUBLIC_SERVER;
-		private scopeOwner?: Player;
-
-		private owner: StateNode;
-
-		private whitelist: Player[] = [];
-		private blacklist: Player[] = [];
-
-		private predicate: (plr: Player) => boolean = () => true;
-
-		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
-
-		public constructor(owner: StateNode) {
-			this.owner = owner;
+	export class Replicator {
+		constructor() {
+			if (RunService.IsServer()) {
+				Players.PlayerRemoving.Connect(this.removeSubscribedNetworkActor);
+			}
 		}
 
-		public getNetworkQueue() {
-			return this.networkQueue;
-		}
-
-		public clearNetworkQueue() {
-			this.networkQueue.clear();
-		}
-
-		public setMode(mode: ReplicationMode) {
-			this.mode = mode;
-		}
-
-		public getMode() {
-			this.mode;
-		}
-
+		private scope: ScopeIndex = ScopeIndex.UNASSIGNED;
 		public setScope(scope: ScopeIndex) {
 			this.scope = scope;
 		}
-
 		public getScope() {
 			return this.scope;
 		}
 
-		public setScopeOwner(plr: Player) {
-			this.scopeOwner = plr;
+		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
+		public getNetworkQueue() {
+			return this.networkQueue;
+		}
+		public clearNetworkQueue() {
+			this.networkQueue.clear();
+		}
+		public generateUpdatePacket(newValue: any, targets?: NetworkActor[]) {
+			targets = targets ?? this.getTargetNetworkActors();
+			Packet.Update(targets, newValue);
+		}
+		public generateSubscribePacket() {
+			this.networkQueue.push(Packet.Subscribe());
 		}
 
-		public addSubscription() {}
-
-		/** @server @hidden */
-		public _internal_shouldReplicateFor(plr: Player) {
-			if (RunService.IsClient()) return false;
-			if (this.scope === ScopeIndex.PUBLIC_SERVER) {
-				if (this.mode === ReplicationMode.All) {
-					return true;
-				}
-				if (this.mode === ReplicationMode.Whitelist) {
-					return this.whitelist.includes(plr);
-				}
-				if (this.mode === ReplicationMode.Blacklist) {
-					return !this.blacklist.includes(plr);
-				}
-				if (this.mode === ReplicationMode.Predicate) {
-					return this.predicate(plr);
-				}
+		private readonly subscribedNetworkActors: NetworkActor[] = [];
+		public addSubscribedNetworkActor(actor: NetworkActor) {
+			if (!this.subscribedNetworkActors.includes(actor)) {
+				this.subscribedNetworkActors.push(actor);
 			}
-			if (this.scope === ScopeIndex.PRIVATE_SERVER) {
-				return false;
+		}
+		private removeSubscribedNetworkActor(actor: NetworkActor) {
+			if (
+				this.subscribedNetworkActors.size() > 0 &&
+				this.subscribedNetworkActors.includes(actor)
+			) {
+				this.subscribedNetworkActors.remove(
+					this.subscribedNetworkActors.indexOf(actor),
+				);
 			}
-			if (this.scope === ScopeIndex.PUBLIC_CLIENT) {
-				if (this.mode === ReplicationMode.All) {
-					return true;
-				}
-				if (this.mode === ReplicationMode.Whitelist) {
-					return this.whitelist.includes(plr);
-				}
-				if (this.mode === ReplicationMode.Blacklist) {
-					return !this.blacklist.includes(plr);
-				}
-				if (this.mode === ReplicationMode.Predicate) {
-					return this.predicate(plr);
-				}
-			}
-			if (this.scope === ScopeIndex.PRIVATE_CLIENT) {
-				return false;
+		}
+		private getTargetNetworkActors() {
+			switch (this.mode) {
+				case ReplicationMode.ALL:
+					return this.subscribedNetworkActors;
+				case ReplicationMode.NONE:
+					return [];
+				case ReplicationMode.PREDICATE:
+					return Players.GetPlayers().filter(
+						(p) =>
+							this.predicate(p) && this.subscribedNetworkActors.includes(p),
+					);
 			}
 		}
 
-		/** @server @hidden */
-		public _internal_shouldAllowClientWrite(plr: Player) {
-			if (this.scope === ScopeIndex.PUBLIC_SERVER) {
-				return false;
-			}
-			if (this.scope === ScopeIndex.PRIVATE_SERVER) {
-				return false;
-			}
-			if (this.scope === ScopeIndex.PUBLIC_CLIENT) {
-				// TODO: Allow to write sometimes.
-				return true;
-			}
-			if (this.scope === ScopeIndex.PRIVATE_CLIENT) {
-				return true;
-			}
+		private mode: ReplicationMode = ReplicationMode.ALL;
+		public predicate: (plr: Player) => boolean = () => true;
+		public setMode(mode: ReplicationMode): this {
+			this.mode = mode;
+			return this;
+		}
+		public getMode(): ReplicationMode {
+			return this.mode;
 		}
 	}
 }

@@ -1,6 +1,7 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { Replication } from ".";
 import { ReplicatableNodeID } from "../../global/Types";
+import { LeafNode } from "../nodes/Leaf";
 import { StateNode } from "../nodes/StateNode";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
@@ -16,9 +17,8 @@ export class Network {
 	private readonly remoteEvent;
 	private readonly networkQueue: Wrapped<Packet>[] = [];
 	private readonly repicatableNodes: Map<ReplicatableNodeID, StateNode> = new Map();
-	private currentNodeID: ReplicatableNodeID = 0;
-
 	private readonly initialBaseNodeSize: number;
+	private currentNodeID: ReplicatableNodeID = 0;
 
 	// Pre: Tree is built
 	constructor(
@@ -112,24 +112,31 @@ export class Network {
 			// Signed Packets
 			let node = this.repicatableNodes.get(packet.nodeid);
 			assert(node, "Invalid Node ID");
+			let replicator = node.GetReplicator();
 			switch (packet.type) {
 				case "update": {
-					// UPDATE VALUE LOCALLY
-					if (Replication.amOwnerContext(node.GetReplicator().getScope())) {
-						// DISTRIBUTE UPDATE TO ALL SUBSCRIBED NETWORK TARGETS
-						// USING THE REPLICATOR TO GENERATE A PACKET?
+					if (Replication.amOwnerContext(replicator.getScope())) {
+						// TRIGGER MIDDLEWARE WITH NEW VALUE
+						// IF IT PASSES THEN
+						// 	DISTRIBUTE UPDATE TO ALL SUBSCRIBED NETWORK TARGETS
+						// 	USING THE REPLICATOR TO GENERATE A PACKET?
+						// ELSE
+						// 	SEND BACK THE OLD VALUE TO SOURCE AS UPDATE
+					} else {
+						// UPDATE LOCALLY
 					}
 					continue;
 				}
 				case "subscribe": {
-					if (Replication.amOwnerContext(node.GetReplicator().getScope())) {
-						// ADD NETWORK TARGET TO REPLICATOR
-						// SEND INITIAL UPDATE PACKET TO NETWORK TARGET
-						// BE CAREFUL HERE AND CODE DEFENSIVELY BECAUSE IN FUTURE
-						// VINES WILL BE ADDED TO USE THIS SAME SYSTEM
+					if (Replication.amOwnerContext(replicator.getScope())) {
+						if (node instanceof LeafNode) {
+							replicator.addSubscribedNetworkActor(source);
+							//replicator.generateUpdatePacket( GET NODE VALUE HERE, source);
+
+							// VINES WILL BE ADDED HERE TOO EVENTUALLY?
+						}
 					} else {
-						// ERROR
-						// ATTEMPT TO SUBSCRIBE WHEN I DO NOT OWN THE NODE?
+						error("Received subscribe packet on client");
 					}
 					continue;
 				}

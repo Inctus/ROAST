@@ -1,9 +1,11 @@
 import { StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
+import { ScopeIndex } from "./RestrictedScope";
 
 // TODO: check if abstract is required.
 export class StateNode {
-	public Parent: StateNode | undefined = undefined;
+	public Parent: StateNode | undefined;
+	private replicator: Replication.Replicator = new Replication.Replicator();
 
 	constructor() {}
 
@@ -15,10 +17,8 @@ export class StateNode {
 		this.Parent = parent;
 	}
 
-	private replicator = new Replication.ReplicationOptions(this);
-
-	public GetReplicator() {
-		return this.replicator;
+	public GetReplicator(): Replication.Replicator {
+		return this.replicator!;
 	}
 
 	public SetMiddleware(): this {

@@ -26,6 +26,10 @@ export enum ScopeIndex {
 	 * clients are able to view this tree.
 	 */
 	PUBLIC_CLIENT,
+	/**
+	 * Not yet assigned
+	 */
+	UNASSIGNED,
 }
 
 export class RestrictedScope<T extends StateTreeDefinition> extends IndexableNode<T> {
