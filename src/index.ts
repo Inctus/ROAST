@@ -1,4 +1,5 @@
 import { DefaultMode, ReplicationMode } from "./lib/global/Enums";
+import { StateTreeDefinition } from "./lib/global/Types";
 import { StateNode } from "./lib/tree";
 import { Definition, DefinitionBuilder } from "./lib/tree/definitions";
 
@@ -16,7 +17,7 @@ export namespace ROAST {
 		ACTIVE,
 	}
 
-	export function CreateDefinitions<T extends Record<string, StateNode>>(
+	export function CreateDefinitions<T extends StateTreeDefinition>(
 		definitions: T,
 	): Definition<T> {
 		return DefinitionBuilder.build(definitions, NETWORK_NAME);

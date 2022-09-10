@@ -17,6 +17,8 @@ export interface NetworkRequest {
 	s?: ReplicatableNodeID[];
 	// Handshake Number
 	h?: number;
+	// Handshake Name
+	n?: string;
 }
 
 export namespace Packet {
@@ -73,6 +75,7 @@ export namespace Packet {
 		type: "handshake";
 		// The number of NodeIDs to expect
 		nodes: number;
+		name: string;
 	}
 
 	/**
@@ -81,12 +84,13 @@ export namespace Packet {
 	 * @param nodes The number of NodeIDs to expect
 	 * @returns A Wrapped Handshake Packet
 	 */
-	export function Handshake(nodes: number): Wrapped<Handshake> {
+	export function Handshake(nodes: number, name: string): Wrapped<Handshake> {
 		return {
 			targets: ["server"],
 			packet: {
 				type: "handshake",
 				nodes: nodes,
+				name: name,
 			},
 		};
 	}
@@ -158,6 +162,7 @@ export namespace Packet {
 		let updateValues: any[] = [];
 		let subscribeNodeIDs: ReplicatableNodeID[] = [];
 		let handshakeNumber: number | undefined;
+		let handshakeName: string | undefined;
 
 		for (const packet of packets) {
 			switch (packet.type) {
@@ -170,6 +175,7 @@ export namespace Packet {
 					break;
 				case "handshake":
 					handshakeNumber = packet.nodes;
+					handshakeName = packet.name;
 					break;
 			}
 		}
@@ -179,6 +185,7 @@ export namespace Packet {
 			v: updateValues.size() > 0 ? updateValues : undefined,
 			s: subscribeNodeIDs.size() > 0 ? subscribeNodeIDs : undefined,
 			h: handshakeNumber,
+			n: handshakeName,
 		};
 	}
 
@@ -203,9 +210,11 @@ export namespace Packet {
 		}
 
 		if (request.h) {
+			assert(request.n, "Handshake Packet without name");
 			packets.push({
 				type: "handshake",
 				nodes: request.h,
+				name: request.n,
 			});
 		}
 

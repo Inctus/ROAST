@@ -16,10 +16,16 @@ export class Network {
 	private readonly networkQueue: Wrapped<Packet>[] = [];
 	private readonly repicatableNodes: Map<ReplicatableNodeID, StateNode> = new Map();
 	private currentNodeID: ReplicatableNodeID = 0;
+	private readonly initialBaseNodeSize: number;
 
 	// Pre: Tree is built
-	constructor(remoteEventName: string, baseNodes: StateNode[]) {
+	constructor(
+		remoteEventName: string,
+		baseNodes: StateNode[],
+		private readonly lastBaseNodeName: string,
+	) {
 		baseNodes.forEach(this.AddReplicatableNode);
+		this.initialBaseNodeSize = baseNodes.size();
 
 		if (RunService.IsServer()) {
 			this.remoteEvent = new Instance("RemoteEvent");
@@ -35,7 +41,9 @@ export class Network {
 				remoteEventName,
 			) as RemoteEvent;
 
-			this.networkQueue.push(Packet.Handshake(baseNodes.size()));
+			this.networkQueue.push(
+				Packet.Handshake(this.initialBaseNodeSize, this.lastBaseNodeName),
+			);
 
 			this.remoteEvent.OnClientEvent.Connect((request: NetworkRequest) => {
 				this.ProcessNetworkRequest(request, "server");

@@ -24,29 +24,32 @@ export class DefinitionBuilder {
 		definition: StateTreeDefinition,
 		currentScope: ScopeIndex,
 		replicatableNodes: StateNode[],
-	) {
-		for (let [_, v] of pairs(definition)) {
-			if (v instanceof RestrictedScope) {
-				currentScope = v.getScope();
+	): string {
+		let lastName: string = "";
+		for (let [name, node] of pairs(definition)) {
+			if (node instanceof RestrictedScope) {
+				currentScope = node.getScope();
 			}
 
-			v.setParent(parent);
+			node.setParent(parent);
+			node.GetReplicator().setScope(currentScope);
 
 			if (Replication.isReplicatableScope(currentScope)) {
-				replicatableNodes.push(v);
+				replicatableNodes.push(node);
 			}
 
-			if (v instanceof IndexableNode) {
+			if (node instanceof IndexableNode) {
 				DefinitionBuilder.definitionTraversal(
-					v,
-					v.paths,
+					node,
+					node.paths,
 					currentScope,
 					replicatableNodes,
 				);
-			} else {
-				v.GetReplicator().setScope(currentScope);
 			}
+
+			lastName = name;
 		}
+		return lastName;
 	}
 
 	public static build<T extends StateTreeDefinition>(
@@ -54,23 +57,24 @@ export class DefinitionBuilder {
 		networkName: string,
 	): Definition<T> {
 		let replicatableNodes: StateNode[] = [];
-		for (let [i, v] of pairs(definition)) {
-			if (v instanceof RestrictedScope) {
-				DefinitionBuilder.definitionTraversal(
-					v,
-					v.paths,
-					v.getScope(),
+		let lastName: string = "";
+		for (let [name, node] of pairs(definition)) {
+			if (node instanceof RestrictedScope) {
+				lastName = DefinitionBuilder.definitionTraversal(
+					node,
+					node.paths,
+					node.getScope(),
 					replicatableNodes,
 				);
 			} else {
 				warn(
-					`[ROAST] DefinitionBuilder: ${i} is not a RestrictedScope/Scope object.`,
+					`[ROAST] DefinitionBuilder: ${name} is not a RestrictedScope/Scope object.`,
 				);
 			}
 		}
 		let created = new Definition(
 			definition,
-			new Network(networkName, replicatableNodes),
+			new Network(networkName, replicatableNodes, lastName),
 		);
 		return created;
 	}
