@@ -1,3 +1,4 @@
+import { Assert, Error, ErrorSeverity, ErrorType } from "../../global/Error";
 import { ReplicatableNodeID } from "../../global/Types";
 
 export type NetworkActor = Player | "server";
@@ -112,7 +113,7 @@ export namespace Packet {
 					value: (<Unsigned<Update>>packet).value,
 				} as T;
 			default:
-				error("Invalid Packet Type");
+				error("Invalid Packet type %s".format(packet.type));
 		}
 	}
 
