@@ -87,7 +87,7 @@ export namespace Replication {
 		}
 	}
 
-	export function amOwnerScope(scope: ScopeIndex): boolean {
+	export function amOwnerContext(scope: ScopeIndex): boolean {
 		if (RunService.IsServer()) {
 			return (
 				scope === ScopeIndex.PRIVATE_SERVER ||

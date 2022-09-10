@@ -1,4 +1,5 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
+import { Replication } from ".";
 import { ReplicatableNodeID } from "../../global/Types";
 import { StateNode } from "../nodes/StateNode";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
@@ -110,21 +111,27 @@ export class Network {
 			}
 			// Signed Packets
 			let node = this.repicatableNodes.get(packet.nodeid);
+			assert(node, "Invalid Node ID");
 			switch (packet.type) {
 				case "update": {
-					// RETRIEVE NODE
-					// IF I AM THE OWNER CONTEXT, UPDATE NODE
-					// DISTRIBUTE UPDATE TO ALL SUBSCRIBED NETWORK TARGETS
-					// USING THE REPLICATOR TO GENERATE A PACKET?
-					// OTHERWISE JUST UPDATE LOCALLY
-					break;
+					// UPDATE VALUE LOCALLY
+					if (Replication.amOwnerContext(node.GetReplicator().getScope())) {
+						// DISTRIBUTE UPDATE TO ALL SUBSCRIBED NETWORK TARGETS
+						// USING THE REPLICATOR TO GENERATE A PACKET?
+					}
+					continue;
 				}
 				case "subscribe": {
-					// RETRIEVE NODE
-					// IF I AM NOT THE OWNER CONTEXT, ERROR
-					// OTHERWISE ADD THE SOURCE TO THE SUBSCRIBERS OF THE NODE
-					// RETURN AN UPDATE PACKET TO THE SOURCE
-					break;
+					if (Replication.amOwnerContext(node.GetReplicator().getScope())) {
+						// ADD NETWORK TARGET TO REPLICATOR
+						// SEND INITIAL UPDATE PACKET TO NETWORK TARGET
+						// BE CAREFUL HERE AND CODE DEFENSIVELY BECAUSE IN FUTURE
+						// VINES WILL BE ADDED TO USE THIS SAME SYSTEM
+					} else {
+						// ERROR
+						// ATTEMPT TO SUBSCRIBE WHEN I DO NOT OWN THE NODE?
+					}
+					continue;
 				}
 			}
 		}
