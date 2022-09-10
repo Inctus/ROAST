@@ -77,6 +77,30 @@ let sub = NodeSubscriptionBuilder.build<boolean>()
 // .then();
 
 export namespace Replication {
+	export function isReplicatableScope(scope: ScopeIndex): boolean {
+		switch (scope) {
+			case ScopeIndex.PUBLIC_CLIENT:
+			case ScopeIndex.PUBLIC_SERVER:
+			case ScopeIndex.NEED_TO_KNOW:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	export function amOwnerScope(scope: ScopeIndex): boolean {
+		if (RunService.IsServer()) {
+			return (
+				scope === ScopeIndex.PRIVATE_SERVER ||
+				scope === ScopeIndex.PUBLIC_SERVER ||
+				scope === ScopeIndex.PUBLIC_CLIENT ||
+				scope === ScopeIndex.NEED_TO_KNOW
+			);
+		} else {
+			return scope === ScopeIndex.PRIVATE_CLIENT;
+		}
+	}
+
 	export class ReplicationOptions {
 		private mode: ReplicationMode = ReplicationMode.All;
 

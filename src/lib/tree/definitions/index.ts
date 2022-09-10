@@ -1,6 +1,7 @@
 import { StateTreeDefinition } from "../../global/Types";
 import { RestrictedScope, ScopeIndex } from "../nodes/RestrictedScope";
 import { IndexableNode, StateNode } from "../nodes/StateNode";
+import { Replication } from "../replication";
 import { Network } from "../replication/Network";
 
 export type BuiltDefinitions = {};
@@ -31,8 +32,9 @@ export class DefinitionBuilder {
 
 			v.setParent(parent);
 
-			// IF NODE IS OF A REPLICATABLE SCOPE
-			// PUSH IT TO THE REPLICATABLE NODES
+			if (Replication.isReplicatableScope(currentScope)) {
+				replicatableNodes.push(v);
+			}
 
 			if (v instanceof IndexableNode) {
 				DefinitionBuilder.definitionTraversal(
