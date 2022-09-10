@@ -16,6 +16,7 @@ export class Network {
 	private readonly networkQueue: Wrapped<Packet>[] = [];
 	private readonly repicatableNodes: Map<ReplicatableNodeID, StateNode> = new Map();
 	private currentNodeID: ReplicatableNodeID = 0;
+
 	private readonly initialBaseNodeSize: number;
 
 	// Pre: Tree is built
@@ -94,14 +95,22 @@ export class Network {
 	private ProcessNetworkRequest(request: NetworkRequest, source: NetworkActor) {
 		let receivedPackets: Packet[] = Packet.ParseNetworkRequest(request);
 		for (const packet of receivedPackets) {
+			// Unsigned Packets
 			switch (packet.type) {
 				case "handshake": {
-					// IF I AM THE CLIENT, ERROR
-					// ASSERT THE NUMBER MATCHES THE NUMBER TREE HAS
-					// IF I AM THE SERVER, SEND HANDSHAKE RESPONSE
-					// USE TREE.GETBASENODEIDS() TO GET THE BASE NODE IDS
-					break;
+					assert(RunService.IsServer(), "Handshake packet received on client");
+					if (
+						packet.name != this.lastBaseNodeName ||
+						packet.nodes != this.initialBaseNodeSize
+					) {
+						(<Player>source).Kick("Invalid Handshake");
+					}
+					continue;
 				}
+			}
+			// Signed Packets
+			let node = this.repicatableNodes.get(packet.nodeid);
+			switch (packet.type) {
 				case "update": {
 					// RETRIEVE NODE
 					// IF I AM THE OWNER CONTEXT, UPDATE NODE
