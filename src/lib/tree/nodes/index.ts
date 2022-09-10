@@ -55,12 +55,6 @@ export namespace Nodes {
 		return new PublicClientScope(children);
 	}
 
-	export function RestrictedPublic<T extends StateTreeDefinition>(
-		children: T,
-	): RestrictedScope<T> {
-		return Scope(children, ScopeIndex.NEED_TO_KNOW);
-	}
-
 	export function Vine<T extends StateTreeDefinition, R extends unknown[]>(
 		children: (...args: R) => T,
 	): VineNode<T, R> {

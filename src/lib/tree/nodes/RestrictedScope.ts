@@ -26,11 +26,6 @@ export enum ScopeIndex {
 	 * clients are able to view this tree.
 	 */
 	PUBLIC_CLIENT,
-	/**
-	 * `ScopeIndex.NEED_TO_KNOW` denotes that this is a state subtree where the client does
-	 * not have any awareness of the existing keys.
-	 */
-	NEED_TO_KNOW,
 }
 
 export class RestrictedScope<T extends StateTreeDefinition> extends IndexableNode<T> {

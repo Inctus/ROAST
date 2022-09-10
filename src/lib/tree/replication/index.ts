@@ -3,7 +3,7 @@ import { ReplicationMode } from "../../global/Enums";
 import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
 import { StateNode } from "../nodes/StateNode";
-import { UnsignedPacket, Wrapped } from "./Packet";
+import { SignablePacket, Unsigned, Wrapped } from "./Packet";
 
 export type SubscriptionRejected = (reason: string) => void;
 export type SubscriptionResolved = (e: any) => void;
@@ -81,7 +81,6 @@ export namespace Replication {
 		switch (scope) {
 			case ScopeIndex.PUBLIC_CLIENT:
 			case ScopeIndex.PUBLIC_SERVER:
-			case ScopeIndex.NEED_TO_KNOW:
 				return true;
 			default:
 				return false;
@@ -93,8 +92,7 @@ export namespace Replication {
 			return (
 				scope === ScopeIndex.PRIVATE_SERVER ||
 				scope === ScopeIndex.PUBLIC_SERVER ||
-				scope === ScopeIndex.PUBLIC_CLIENT ||
-				scope === ScopeIndex.NEED_TO_KNOW
+				scope === ScopeIndex.PUBLIC_CLIENT
 			);
 		} else {
 			return scope === ScopeIndex.PRIVATE_CLIENT;
@@ -114,7 +112,7 @@ export namespace Replication {
 
 		private predicate: (plr: Player) => boolean = () => true;
 
-		private readonly networkQueue: Wrapped<UnsignedPacket>[] = [];
+		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
 
 		public constructor(owner: StateNode) {
 			this.owner = owner;
@@ -187,9 +185,6 @@ export namespace Replication {
 			if (this.scope === ScopeIndex.PRIVATE_CLIENT) {
 				return false;
 			}
-			if (this.scope === ScopeIndex.NEED_TO_KNOW) {
-				return false; // TODO: Fix this.
-			}
 		}
 
 		/** @server @hidden */
@@ -206,9 +201,6 @@ export namespace Replication {
 			}
 			if (this.scope === ScopeIndex.PRIVATE_CLIENT) {
 				return true;
-			}
-			if (this.scope === ScopeIndex.NEED_TO_KNOW) {
-				return false; // TODO: Fix this.
 			}
 		}
 	}
