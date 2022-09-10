@@ -94,11 +94,6 @@ export class Network {
 					// USE TREE.GETBASENODEIDS() TO GET THE BASE NODE IDS
 					break;
 				}
-				case "handshake-response": {
-					// IF I AM THE SERVER, ERROR
-					// OTHERWISE ASSIGN THE HANDSHAKE RESPONSE IDS TO THE REPLICATABLE NODES
-					break;
-				}
 				case "update": {
 					// RETRIEVE NODE
 					// IF I AM THE OWNER CONTEXT, UPDATE NODE

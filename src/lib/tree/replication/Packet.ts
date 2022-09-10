@@ -1,10 +1,22 @@
 import { ReplicatableNodeID } from "../../global/Types";
 
-export namespace Packet {
-	export interface UnsignedSubscribe {
-		type: "subscribe";
-	}
+export type NetworkActor = Player | "server";
+export type Packet = Packet.Update | Packet.Subscribe | Packet.Handshake;
+export type SignablePacket = Packet.Update | Packet.Subscribe;
+export type Unsigned<T extends SignablePacket> = Omit<T, "nodeid">;
+export interface Wrapped<T extends Packet | Unsigned<SignablePacket>> {
+	targets: NetworkActor[];
+	packet: T;
+}
 
+export interface NetworkRequest {
+	u?: Record<ReplicatableNodeID, any>;
+	s?: ReplicatableNodeID[];
+	h?: number;
+	r?: ReplicatableNodeID[];
+}
+
+export namespace Packet {
 	export interface Subscribe {
 		type: "subscribe";
 		// The NodeID being subscribed to
@@ -17,19 +29,13 @@ export namespace Packet {
 	 * @param requests The List of NodeIDs to subscribe to
 	 * @returns A Wrapped Subscribe Packet
 	 */
-	export function Subscribe(): Wrapped<UnsignedSubscribe> {
+	export function Subscribe(): Wrapped<Unsigned<Subscribe>> {
 		return {
 			targets: ["server"],
 			packet: {
 				type: "subscribe",
 			},
 		};
-	}
-
-	export interface UnsignedUpdate {
-		type: "update";
-		// The new value of the Node
-		value: any;
 	}
 
 	export interface Update {
@@ -47,7 +53,10 @@ export namespace Packet {
 	 * @param updates A Map of NodeIDs to new values
 	 * @returns A Wrapped Update Packet
 	 */
-	export function Update(targets: NetworkActor[], value: any): Wrapped<UnsignedUpdate> {
+	export function Update(
+		targets: NetworkActor[],
+		value: any,
+	): Wrapped<Unsigned<Update>> {
 		return {
 			targets: targets,
 			packet: {
@@ -79,53 +88,29 @@ export namespace Packet {
 		};
 	}
 
-	export interface HandshakeResponse {
-		type: "handshake-response";
-		// A List of NodeIDs from a DFS traversal of the trees
-		nodes: ReplicatableNodeID[];
-	}
-
-	/**
-	 * Creates a Wrapped Handshake-Response Packet
-	 *
-	 * @param client The Client to send the Handshake-Response Packet to
-	 * @param nodes A List of NodeIDs from a DFS traversal of the trees
-	 *
-	 * @returns A Wrapped Handshake-Response Packet
-	 */
-	export function HandshakeResponse(
-		client: Player,
-		nodes: ReplicatableNodeID[],
-	): Wrapped<HandshakeResponse> {
-		return {
-			targets: [client],
-			packet: {
-				type: "handshake-response",
-				nodes: nodes,
-			},
-		};
-	}
-
-	function Sign(unsigned: UnsignedPacket, nodeID: ReplicatableNodeID): Packet {
-		switch (unsigned.type) {
+	export function Sign<T extends SignablePacket>(
+		packet: Unsigned<T>,
+		nodeID: ReplicatableNodeID,
+	): T {
+		switch (packet.type) {
 			case "subscribe":
 				return {
 					type: "subscribe",
 					nodeid: nodeID,
-				} as Subscribe;
+				} as T;
 			case "update":
 				return {
 					type: "update",
 					nodeid: nodeID,
-					value: unsigned.value,
-				} as Update;
+					value: (<Unsigned<Update>>packet).value,
+				} as T;
 			default:
-				return unsigned;
+				error("Invalid Packet Type");
 		}
 	}
 
 	export function SignAll(
-		unsigned: Wrapped<UnsignedPacket>[],
+		unsigned: Wrapped<Unsigned<SignablePacket>>[],
 		nodeID: ReplicatableNodeID,
 	): Wrapped<Packet>[] {
 		for (const packet of unsigned) {
@@ -185,10 +170,6 @@ export namespace Packet {
 					handshake = packet.nodes;
 					break;
 				}
-				case "handshake-response": {
-					response = packet.nodes;
-					break;
-				}
 			}
 		}
 
@@ -235,13 +216,6 @@ export namespace Packet {
 			});
 		}
 
-		if (request.r) {
-			packets.push({
-				type: "handshake-response",
-				nodes: request.r,
-			});
-		}
-
 		return packets;
 	}
 
@@ -253,32 +227,6 @@ export namespace Packet {
 	// 		map: Record<GUID, any>;
 	// 	}[];
 	// }
-}
-
-export type Packet =
-	| Packet.Subscribe
-	| Packet.Update
-	| Packet.Handshake
-	| Packet.HandshakeResponse;
-
-export type UnsignedPacket =
-	| Packet.UnsignedSubscribe
-	| Packet.UnsignedUpdate
-	| Packet.Handshake
-	| Packet.HandshakeResponse;
-
-export type NetworkActor = Player | "server";
-
-export interface Wrapped<T extends Packet | UnsignedPacket> {
-	targets: NetworkActor[];
-	packet: T;
-}
-
-export interface NetworkRequest {
-	u?: Record<ReplicatableNodeID, any>;
-	s?: ReplicatableNodeID[];
-	h?: number;
-	r?: ReplicatableNodeID[];
 }
 
 // let x = {
