@@ -8,12 +8,15 @@ export interface Wrapped<T extends Packet | Unsigned<SignablePacket>> {
 	targets: NetworkActor[];
 	packet: T;
 }
-
 export interface NetworkRequest {
-	u?: Record<ReplicatableNodeID, any>;
+	// Update Nodes
+	u?: ReplicatableNodeID[];
+	// Update Values
+	v?: any[];
+	// Subscribe Nodes
 	s?: ReplicatableNodeID[];
+	// Handshake Number
 	h?: number;
-	r?: ReplicatableNodeID[];
 }
 
 export namespace Packet {
@@ -151,33 +154,31 @@ export namespace Packet {
 	 * @returns A NetworkRequest
 	 */
 	function GenerateNetworkRequest(packets: Packet[]): NetworkRequest {
-		let updates: Record<ReplicatableNodeID, any> = {};
-		let subscriptions: ReplicatableNodeID[] = [];
-		let handshake: number | undefined;
-		let response: ReplicatableNodeID[] | undefined;
+		let updateNodeIDs: ReplicatableNodeID[] = [];
+		let updateValues: any[] = [];
+		let subscribeNodeIDs: ReplicatableNodeID[] = [];
+		let handshakeNumber: number | undefined;
 
 		for (const packet of packets) {
 			switch (packet.type) {
-				case "update": {
-					updates[packet.nodeid] = packet.value;
+				case "update":
+					updateNodeIDs.push(packet.nodeid);
+					updateValues.push(packet.value);
 					break;
-				}
-				case "subscribe": {
-					subscriptions.push(packet.nodeid);
+				case "subscribe":
+					subscribeNodeIDs.push(packet.nodeid);
 					break;
-				}
-				case "handshake": {
-					handshake = packet.nodes;
+				case "handshake":
+					handshakeNumber = packet.nodes;
 					break;
-				}
 			}
 		}
 
 		return {
-			u: updates.size() > 0 ? updates : undefined,
-			s: subscriptions.size() > 0 ? subscriptions : undefined,
-			h: handshake,
-			r: response,
+			u: updateNodeIDs.size() > 0 ? updateNodeIDs : undefined,
+			v: updateValues.size() > 0 ? updateValues : undefined,
+			s: subscribeNodeIDs.size() > 0 ? subscribeNodeIDs : undefined,
+			h: handshakeNumber,
 		};
 	}
 
@@ -191,20 +192,12 @@ export namespace Packet {
 		const packets: Packet[] = [];
 
 		if (request.u) {
-			for (const [nodeid, value] of pairs(request.u)) {
+			assert(request.v, "Update Packet without value");
+			for (let i = 0; i < request.u.size(); i++) {
 				packets.push({
 					type: "update",
-					nodeid: nodeid,
-					value: value,
-				});
-			}
-		}
-
-		if (request.s) {
-			for (const nodeid of request.s) {
-				packets.push({
-					type: "subscribe",
-					nodeid: nodeid,
+					nodeid: request.u[i],
+					value: request.v[i],
 				});
 			}
 		}
@@ -214,6 +207,15 @@ export namespace Packet {
 				type: "handshake",
 				nodes: request.h,
 			});
+		}
+
+		if (request.s) {
+			for (const nodeID of request.s) {
+				packets.push({
+					type: "subscribe",
+					nodeid: nodeID,
+				});
+			}
 		}
 
 		return packets;
