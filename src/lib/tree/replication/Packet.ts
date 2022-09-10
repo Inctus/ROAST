@@ -1,4 +1,4 @@
-import { NodeID } from "../../global/Types";
+import { ReplicatableNodeID } from "../../global/Types";
 
 export namespace Packet {
 	export interface UnsignedSubscribe {
@@ -8,7 +8,7 @@ export namespace Packet {
 	export interface Subscribe {
 		type: "subscribe";
 		// The NodeID being subscribed to
-		nodeid: NodeID;
+		nodeid: ReplicatableNodeID;
 	}
 
 	/**
@@ -35,7 +35,7 @@ export namespace Packet {
 	export interface Update {
 		type: "update";
 		// The NodeID being updated
-		nodeid: NodeID;
+		nodeid: ReplicatableNodeID;
 		// The new value of the Node
 		value: any;
 	}
@@ -82,7 +82,7 @@ export namespace Packet {
 	export interface HandshakeResponse {
 		type: "handshake-response";
 		// A List of NodeIDs from a DFS traversal of the trees
-		nodes: NodeID[];
+		nodes: ReplicatableNodeID[];
 	}
 
 	/**
@@ -95,7 +95,7 @@ export namespace Packet {
 	 */
 	export function HandshakeResponse(
 		client: Player,
-		nodes: NodeID[],
+		nodes: ReplicatableNodeID[],
 	): Wrapped<HandshakeResponse> {
 		return {
 			targets: [client],
@@ -106,7 +106,7 @@ export namespace Packet {
 		};
 	}
 
-	function Sign(unsigned: UnsignedPacket, nodeID: NodeID): Packet {
+	function Sign(unsigned: UnsignedPacket, nodeID: ReplicatableNodeID): Packet {
 		switch (unsigned.type) {
 			case "subscribe":
 				return {
@@ -126,7 +126,7 @@ export namespace Packet {
 
 	export function SignAll(
 		unsigned: Wrapped<UnsignedPacket>[],
-		nodeID: NodeID,
+		nodeID: ReplicatableNodeID,
 	): Wrapped<Packet>[] {
 		for (const packet of unsigned) {
 			packet.packet = Sign(packet.packet, nodeID);
@@ -166,10 +166,10 @@ export namespace Packet {
 	 * @returns A NetworkRequest
 	 */
 	function GenerateNetworkRequest(packets: Packet[]): NetworkRequest {
-		let updates: Record<NodeID, any> = {};
-		let subscriptions: NodeID[] = [];
+		let updates: Record<ReplicatableNodeID, any> = {};
+		let subscriptions: ReplicatableNodeID[] = [];
 		let handshake: number | undefined;
-		let response: NodeID[] | undefined;
+		let response: ReplicatableNodeID[] | undefined;
 
 		for (const packet of packets) {
 			switch (packet.type) {
@@ -275,10 +275,10 @@ export interface Wrapped<T extends Packet | UnsignedPacket> {
 }
 
 export interface NetworkRequest {
-	u?: Record<NodeID, any>;
-	s?: NodeID[];
+	u?: Record<ReplicatableNodeID, any>;
+	s?: ReplicatableNodeID[];
 	h?: number;
-	r?: NodeID[];
+	r?: ReplicatableNodeID[];
 }
 
 // let x = {

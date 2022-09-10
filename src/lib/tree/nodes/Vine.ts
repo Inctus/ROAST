@@ -1,16 +1,18 @@
-import { Players } from "@rbxts/services";
 import { Nodes } from ".";
 import { StateTreeDefinition } from "../../global/Types";
 import { StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
-import { NodeID } from "../../global/Types";
+import { ReplicatableNodeID } from "../../global/Types";
 
 export class VineNode<
 	T extends StateTreeDefinition,
 	R extends unknown[],
 > extends StateNode {
 	private template_children: (...args: R) => T;
-	private mapToID: Map<NodeID, BranchNode<T>> = new Map<NodeID, BranchNode<T>>();
+	private mapToID: Map<ReplicatableNodeID, BranchNode<T>> = new Map<
+		ReplicatableNodeID,
+		BranchNode<T>
+	>();
 
 	constructor(value: (...args: R) => T) {
 		super();
@@ -19,7 +21,7 @@ export class VineNode<
 	}
 
 	/** @deprecated */
-	public Get(str: NodeID): BranchNode<T> {
+	public Get(str: ReplicatableNodeID): BranchNode<T> {
 		return this.mapToID.get(str) as BranchNode<T>;
 	}
 

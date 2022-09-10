@@ -1,11 +1,9 @@
 import { RunService } from "@rbxts/services";
-import { ROAST } from "../../..";
 import { ReplicationMode } from "../../global/Enums";
-import { Definition } from "../definitions";
-import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
 import { StateNode } from "../nodes/StateNode";
+import { UnsignedPacket, Wrapped } from "./Packet";
 
 export type SubscriptionRejected = (reason: string) => void;
 export type SubscriptionResolved = (e: any) => void;
@@ -92,8 +90,18 @@ export namespace Replication {
 
 		private predicate: (plr: Player) => boolean = () => true;
 
+		private readonly networkQueue: Wrapped<UnsignedPacket>[] = [];
+
 		public constructor(owner: StateNode) {
 			this.owner = owner;
+		}
+
+		public getNetworkQueue() {
+			return this.networkQueue;
+		}
+
+		public clearNetworkQueue() {
+			this.networkQueue.clear();
 		}
 
 		public setMode(mode: ReplicationMode) {

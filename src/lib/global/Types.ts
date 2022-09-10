@@ -1,4 +1,4 @@
 import { StateNode } from "../tree/nodes/StateNode";
 
-export type NodeID = number;
-export type StateTreeDefinition = Record<NodeID, StateNode>;
+export type ReplicatableNodeID = number;
+export type StateTreeDefinition = Record<ReplicatableNodeID, StateNode>;

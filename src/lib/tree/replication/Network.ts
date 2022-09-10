@@ -1,5 +1,5 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
-import { NodeID } from "../../global/Types";
+import { ReplicatableNodeID } from "../../global/Types";
 import { StateNode } from "../nodes/StateNode";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
@@ -14,8 +14,8 @@ export class Network {
 	 */
 	private readonly remoteEvent;
 	private readonly networkQueue: Wrapped<Packet>[] = [];
-	private readonly repicatableNodes: Map<NodeID, StateNode> = new Map();
-	private currentNodeID: NodeID = 0;
+	private readonly repicatableNodes: Map<ReplicatableNodeID, StateNode> = new Map();
+	private currentNodeID: ReplicatableNodeID = 0;
 
 	// Pre: Tree is built
 	constructor(remoteEventName: string, baseNodes: StateNode[]) {
@@ -46,12 +46,11 @@ export class Network {
 	}
 
 	private AddReplicatableNode(node: StateNode) {
-		node.SetID(this.currentNodeID);
 		this.repicatableNodes.set(this.currentNodeID, node);
 		this.currentNodeID++;
 	}
 
-	private RemoveReplicatableNode(nodeID: NodeID) {
+	private RemoveReplicatableNode(nodeID: ReplicatableNodeID) {
 		this.repicatableNodes.delete(nodeID);
 	}
 
@@ -61,16 +60,11 @@ export class Network {
 	 * @param delta The time since the last tick
 	 */
 	private ProcessNetworkTick(delta: number) {
-		for (const node of this.GetReplicatableNodes()) {
-			if (node.GetID()) {
-				this.networkQueue.push(
-					...Packet.SignAll(
-						node.GetReplicator().GetNetworkQueue(),
-						node.GetID()!,
-					),
-				);
-				node.GetReplicator().ClearNetworkQueue();
-			}
+		for (const [nodeID, node] of this.repicatableNodes) {
+			this.networkQueue.push(
+				...Packet.SignAll(node.GetReplicator().getNetworkQueue(), nodeID),
+			);
+			node.GetReplicator().clearNetworkQueue();
 		}
 		let networkRequestMap = Packet.UnwrapPackets(this.networkQueue);
 		for (const [target, request] of networkRequestMap) {
