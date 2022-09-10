@@ -47,10 +47,7 @@ export namespace Packet {
 	 * @param updates A Map of NodeIDs to new values
 	 * @returns A Wrapped Update Packet
 	 */
-	export function Update(
-		targets: NetworkTarget[],
-		value: any,
-	): Wrapped<UnsignedUpdate> {
+	export function Update(targets: NetworkActor[], value: any): Wrapped<UnsignedUpdate> {
 		return {
 			targets: targets,
 			packet: {
@@ -145,8 +142,8 @@ export namespace Packet {
 	 */
 	export function UnwrapPackets(
 		wrappedPackets: Wrapped<Packet>[],
-	): Map<NetworkTarget, NetworkRequest> {
-		let contextMapped = new Map<NetworkTarget, Packet[]>();
+	): Map<NetworkActor, NetworkRequest> {
+		let contextMapped = new Map<NetworkActor, Packet[]>();
 		for (const wrappedPacket of wrappedPackets) {
 			for (const target of wrappedPacket.targets) {
 				if (!contextMapped.has(target)) {
@@ -155,7 +152,7 @@ export namespace Packet {
 				contextMapped.get(target)!.push(wrappedPacket.packet);
 			}
 		}
-		let networkRequestMap = new Map<NetworkTarget, NetworkRequest>();
+		let networkRequestMap = new Map<NetworkActor, NetworkRequest>();
 		for (const [target, packets] of contextMapped) {
 			networkRequestMap.set(target, GenerateNetworkRequest(packets));
 		}
@@ -270,10 +267,10 @@ export type UnsignedPacket =
 	| Packet.Handshake
 	| Packet.HandshakeResponse;
 
-export type NetworkTarget = Player | "server";
+export type NetworkActor = Player | "server";
 
 export interface Wrapped<T extends Packet | UnsignedPacket> {
-	targets: NetworkTarget[];
+	targets: NetworkActor[];
 	packet: T;
 }
 

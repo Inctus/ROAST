@@ -1,9 +1,9 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
-import { StateTreeDefinition } from "../../global/Types";
-import { Definition } from "../definitions";
-import { NetworkRequest, NetworkTarget, Packet, UnsignedPacket, Wrapped } from "./Packet";
+import { NodeID } from "../../global/Types";
+import { StateNode } from "../nodes/StateNode";
+import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
-export class Network<T extends StateTreeDefinition> {
+export class Network {
 	/**
 	 * Handles the Networking of the State Tree
 	 *
@@ -13,16 +13,18 @@ export class Network<T extends StateTreeDefinition> {
 	 * @returns A Network object that handles the networking of the State Tree
 	 */
 	private readonly remoteEvent;
-	private networkQueue: Wrapped<Packet>[] = [];
+	private readonly networkQueue: Wrapped<Packet>[] = [];
+	private readonly repicatableNodes: Map<NodeID, StateNode> = new Map();
+	private currentNodeID: NodeID = 0;
 
 	// Pre: Tree is built
-	constructor(remoteEventName: string, private tree: Definition<T>) {
+	constructor(remoteEventName: string, baseNodes: StateNode[]) {
+		baseNodes.forEach(this.AddReplicatableNode);
+
 		if (RunService.IsServer()) {
 			this.remoteEvent = new Instance("RemoteEvent");
 			this.remoteEvent.Name = remoteEventName;
 			this.remoteEvent.Parent = ReplicatedStorage;
-
-			tree.AssignBaseNodeIDs();
 
 			this.remoteEvent.OnServerEvent.Connect((player, request) => {
 				assert(request && typeof request == "object");
@@ -33,15 +35,24 @@ export class Network<T extends StateTreeDefinition> {
 				remoteEventName,
 			) as RemoteEvent;
 
-			this.networkQueue.push(
-				Packet.Handshake(this.tree.GetReplicatableNodes().size()),
-			);
+			this.networkQueue.push(Packet.Handshake(baseNodes.size()));
 
 			this.remoteEvent.OnClientEvent.Connect((request: NetworkRequest) => {
 				this.ProcessNetworkRequest(request, "server");
 			});
 		}
+
 		RunService.Heartbeat.Connect(this.ProcessNetworkTick);
+	}
+
+	private AddReplicatableNode(node: StateNode) {
+		node.SetID(this.currentNodeID);
+		this.repicatableNodes.set(this.currentNodeID, node);
+		this.currentNodeID++;
+	}
+
+	private RemoveReplicatableNode(nodeID: NodeID) {
+		this.repicatableNodes.delete(nodeID);
 	}
 
 	/**
@@ -50,10 +61,13 @@ export class Network<T extends StateTreeDefinition> {
 	 * @param delta The time since the last tick
 	 */
 	private ProcessNetworkTick(delta: number) {
-		for (const node of this.tree.GetReplicatableNodes()) {
+		for (const node of this.GetReplicatableNodes()) {
 			if (node.GetID()) {
 				this.networkQueue.push(
-					...Packet.SignAll(node.GetReplicator().GetNetworkQueue()),
+					...Packet.SignAll(
+						node.GetReplicator().GetNetworkQueue(),
+						node.GetID()!,
+					),
 				);
 				node.GetReplicator().ClearNetworkQueue();
 			}
@@ -66,7 +80,7 @@ export class Network<T extends StateTreeDefinition> {
 				this.remoteEvent.FireClient(target, request);
 			}
 		}
-		this.networkQueue = [];
+		this.networkQueue.clear();
 	}
 
 	/**
@@ -75,7 +89,7 @@ export class Network<T extends StateTreeDefinition> {
 	 * @param request The incoming NetworkRequest to process
 	 * @param source The source of the NetworkRequest
 	 */
-	private ProcessNetworkRequest(request: NetworkRequest, source: NetworkTarget) {
+	private ProcessNetworkRequest(request: NetworkRequest, source: NetworkActor) {
 		let receivedPackets: Packet[] = Packet.ParseNetworkRequest(request);
 		for (const packet of receivedPackets) {
 			switch (packet.type) {
