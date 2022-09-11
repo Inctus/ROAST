@@ -1,9 +1,8 @@
 import { StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
-import { ScopeIndex } from "./RestrictedScope";
 
 // TODO: check if abstract is required.
-export class StateNode {
+export abstract class StateNode {
 	public Parent: StateNode | undefined;
 	private replicator: Replication.Replicator = new Replication.Replicator();
 
@@ -17,11 +16,11 @@ export class StateNode {
 		this.Parent = parent;
 	}
 
-	public GetReplicator(): Replication.Replicator {
+	public getReplicator(): Replication.Replicator {
 		return this.replicator!;
 	}
 
-	public SetMiddleware(): this {
+	public setMiddleware(): this {
 		return this;
 	}
 }
@@ -29,13 +28,13 @@ export class StateNode {
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
 	paths: T;
 
-	public constructor(paths: T) {
+	constructor(paths: T) {
 		super();
 
 		this.paths = paths;
 	}
 
-	public Get<K extends keyof T & string>(key: K): T[K] {
+	public get<K extends keyof T & string>(key: K): T[K] {
 		return this.paths[key];
 	}
 }

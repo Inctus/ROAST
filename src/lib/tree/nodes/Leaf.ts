@@ -8,7 +8,11 @@ export class LeafNode<T> extends StateNode {
 		this.value = value;
 	}
 
-	public GetValue(): Promise<T> {
+	public getValue(): Promise<T> {
 		return new Promise((res, rej) => {});
+	}
+
+	public subscribe(): this {
+		return this;
 	}
 }

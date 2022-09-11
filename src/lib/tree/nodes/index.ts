@@ -26,9 +26,9 @@ export namespace Nodes {
 	 */
 	function Scope<T extends StateTreeDefinition>(
 		children: T,
-		scope: ScopeIndex,
+		scope: Exclude<ScopeIndex, ScopeIndex.PUBLIC_CLIENT | ScopeIndex.UNASSIGNED>,
 	): RestrictedScope<T> {
-		return new RestrictedScope<T>(children).setScope(scope);
+		return new RestrictedScope<T>(children, scope);
 	}
 
 	export function PublicServer<T extends StateTreeDefinition>(

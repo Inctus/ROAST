@@ -65,8 +65,8 @@ const STATES = ROAST.CreateDefinitions({
 	Private: Nodes.PrivateClient({}),
 });
 
-STATES.GetRoot("Client").GetPlayer(Players.LocalPlayer).Get("Health");
+STATES.GetRoot("Client").getPlayer(Players.LocalPlayer).get("Health");
 
-STATES.GetRoot("Public").Get("Mobs");
+STATES.GetRoot("Public").get("Mobs");
 
 Players.LocalPlayer;

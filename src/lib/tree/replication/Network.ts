@@ -1,8 +1,9 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { Replication } from ".";
 import { ReplicatableNodeID } from "../../global/Types";
+import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
-import { StateNode } from "../nodes/StateNode";
+import { IndexableNode, StateNode } from "../nodes/StateNode";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
 export class Network {
@@ -72,9 +73,9 @@ export class Network {
 	private ProcessNetworkTick(delta: number) {
 		for (const [nodeID, node] of this.repicatableNodes) {
 			this.networkQueue.push(
-				...Packet.SignAll(node.GetReplicator().getNetworkQueue(), nodeID),
+				...Packet.SignAll(node.getReplicator().getNetworkQueue(), nodeID),
 			);
-			node.GetReplicator().clearNetworkQueue();
+			node.getReplicator().clearNetworkQueue();
 		}
 		let networkRequestMap = Packet.UnwrapPackets(this.networkQueue);
 		for (const [target, request] of networkRequestMap) {
@@ -112,7 +113,7 @@ export class Network {
 			// Signed Packets
 			let node = this.repicatableNodes.get(packet.nodeid);
 			assert(node, "Invalid Node ID");
-			let replicator = node.GetReplicator();
+			let replicator = node.getReplicator();
 			switch (packet.type) {
 				case "update": {
 					if (Replication.amOwnerContext(replicator.getScope())) {
@@ -134,6 +135,11 @@ export class Network {
 							//replicator.generateUpdatePacket( GET NODE VALUE HERE, source);
 
 							// VINES WILL BE ADDED HERE TOO EVENTUALLY?
+						} else if (node instanceof BranchNode) {
+							// RECURSE DOWN THE TREE
+							// ADD SUBSCRIPTIONS TO EACH LEAF NODE AND VINE NODE LMAO
+						} else {
+							error("Attempt to Subscribe to a non-leaf, non-branch node");
 						}
 					} else {
 						error("Received subscribe packet on client");

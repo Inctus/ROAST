@@ -33,42 +33,38 @@ export enum ScopeIndex {
 }
 
 export class RestrictedScope<T extends StateTreeDefinition> extends IndexableNode<T> {
-	private Scope: ScopeIndex = ScopeIndex.PUBLIC_SERVER;
-
-	constructor(children: T) {
+	constructor(
+		children: T,
+		private readonly scope: Exclude<
+			ScopeIndex,
+			ScopeIndex.PUBLIC_CLIENT | ScopeIndex.UNASSIGNED
+		>,
+	) {
 		super(children);
 	}
 
-	setScope(scope: ScopeIndex) {
-		if (scope === ScopeIndex.PUBLIC_CLIENT)
-			warn(`Please do not use ScopeIndex.PUBLIC_CLIENT`);
-		this.Scope = scope;
-		return this;
-	}
-
 	getScope() {
-		return this.Scope;
+		return this.scope;
 	}
 }
 
 export class PublicClientScope<T extends StateTreeDefinition> extends StateNode {
-	private template_children: (plr: Player) => T;
 	private mapToPlayers: Map<string, BranchNode<T>> = new Map<string, BranchNode<T>>();
 
-	constructor(value: (plr: Player) => T) {
+	constructor(private readonly templateChildren: (plr: Player) => T) {
 		super();
-
-		this.template_children = value;
 
 		Players.PlayerAdded.Connect((plr) => {
 			this.mapToPlayers.set(
 				tostring(plr.UserId),
-				Nodes.Branch(this.template_children(plr)),
+				Nodes.Branch(this.templateChildren(plr)),
 			);
 		});
+
+		// REMOVE PLAYER WHEN THEY LEAVE AS WELL
 	}
 
-	public GetPlayer(plr: Player): BranchNode<T> {
+	public getPlayer(plr: Player): BranchNode<T> {
 		return this.mapToPlayers.get(tostring(plr.UserId)) as BranchNode<T>;
 	}
 }

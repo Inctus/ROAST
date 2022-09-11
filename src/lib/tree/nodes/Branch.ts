@@ -6,5 +6,7 @@ export class BranchNode<T extends StateTreeDefinition> extends IndexableNode<T> 
 		super(children);
 	}
 
-	observe(resolver: (tree: BranchNode<T>) => void) {}
+	public subscribe(): this {
+		return this;
+	}
 }
