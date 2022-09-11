@@ -13,7 +13,7 @@ export class Definition<T extends StateTreeDefinition> {
 		this.internalDefinitions = definitions;
 	}
 
-	public GetRoot<K extends keyof T>(key: K): T[K] {
+	public getRoot<K extends keyof T>(key: K): T[K] {
 		return this.internalDefinitions[key as K];
 	}
 }
