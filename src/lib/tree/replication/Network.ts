@@ -4,6 +4,7 @@ import { ReplicatableNodeID } from "../../global/Types";
 import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { IndexableNode, StateNode } from "../nodes/StateNode";
+import { VineNode } from "../nodes/Vine";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
 export class Network {
@@ -116,15 +117,22 @@ export class Network {
 			let replicator = node.getReplicator();
 			switch (packet.type) {
 				case "update": {
-					if (Replication.amOwnerContext(replicator.getScope())) {
-						// TRIGGER MIDDLEWARE WITH NEW VALUE
-						// IF IT PASSES THEN
-						// 	DISTRIBUTE UPDATE TO ALL SUBSCRIBED NETWORK TARGETS
-						// 	USING THE REPLICATOR TO GENERATE A PACKET?
-						// ELSE
-						// 	SEND BACK THE OLD VALUE TO SOURCE AS UPDATE
+					if (node instanceof LeafNode) {
+						if (Replication.amOwnerContext(replicator.getScope())) {
+							// TODO() -> RUN MIDDLEWARE
+							let middlewarePass: boolean = true;
+							if (middlewarePass) {
+								node.setValue(packet.value);
+							} else {
+								replicator.enqueuePacket(
+									Packet.Update([source], node.getValue()),
+								);
+							}
+						} else {
+							node.setValue(packet.value);
+						}
 					} else {
-						// UPDATE LOCALLY
+						error("Attempt to update non-leaf node");
 					}
 					continue;
 				}
@@ -132,17 +140,20 @@ export class Network {
 					if (Replication.amOwnerContext(replicator.getScope())) {
 						if (node instanceof LeafNode) {
 							replicator.addSubscribedNetworkActor(source);
-							//replicator.generateUpdatePacket( GET NODE VALUE HERE, source);
-
-							// VINES WILL BE ADDED HERE TOO EVENTUALLY?
+							replicator.enqueuePacket(
+								Packet.Update([source], node.getValue()),
+							);
 						} else if (node instanceof BranchNode) {
 							// RECURSE DOWN THE TREE
 							// ADD SUBSCRIPTIONS TO EACH LEAF NODE AND VINE NODE LMAO
+							// GENERATE UPDATE PACKETS FOR EACH LEAF NODE AND VINE NODE
+						} else if (node instanceof VineNode) {
+							// ADD SUBSCRIPTION TO VINE NODE
 						} else {
-							error("Attempt to Subscribe to a non-leaf, non-branch node");
+							error("Attempt to subscribe to non-subscribable node");
 						}
 					} else {
-						error("Received subscribe packet on client");
+						error("Received a subscribe packet on a non-owner context");
 					}
 					continue;
 				}

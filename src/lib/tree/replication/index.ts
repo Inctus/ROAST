@@ -98,6 +98,10 @@ export namespace Replication {
 		}
 	}
 
+	export function getActor(): NetworkActor {
+		return RunService.IsServer() ? "server" : Players.LocalPlayer;
+	}
+
 	export class Replicator {
 		constructor() {
 			if (RunService.IsServer()) {
@@ -120,12 +124,18 @@ export namespace Replication {
 		public clearNetworkQueue() {
 			this.networkQueue.clear();
 		}
-		public generateUpdatePacket(newValue: any, targets?: NetworkActor[]) {
-			targets = targets ?? this.getTargetNetworkActors();
-			Packet.Update(targets, newValue);
+		public enqueuePacket(packet: Wrapped<Unsigned<SignablePacket>>) {
+			this.networkQueue.push(packet);
 		}
-		public generateSubscribePacket() {
-			this.networkQueue.push(Packet.Subscribe());
+		public distributeUpdate(value: any, source: NetworkActor) {
+			if (Replication.amOwnerContext(this.scope)) {
+				this.enqueuePacket(
+					Packet.Update(
+						this.getTargetNetworkActors().filter((a) => a !== source),
+						value,
+					),
+				);
+			}
 		}
 
 		private readonly subscribedNetworkActors: NetworkActor[] = [];
@@ -144,7 +154,7 @@ export namespace Replication {
 				);
 			}
 		}
-		private getTargetNetworkActors() {
+		public getTargetNetworkActors() {
 			switch (this.mode) {
 				case ReplicationMode.ALL:
 					return this.subscribedNetworkActors;

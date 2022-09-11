@@ -23,6 +23,10 @@ export abstract class StateNode {
 	public setMiddleware(): this {
 		return this;
 	}
+
+	public childChanged() {
+		this.Parent?.childChanged();
+	}
 }
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
