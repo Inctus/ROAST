@@ -28,7 +28,7 @@ export class Network {
 		baseNodes: StateNode[],
 		private readonly lastBaseNodeName: string,
 	) {
-		baseNodes.forEach(this.AddReplicatableNode);
+		baseNodes.forEach((v) => this.AddReplicatableNode(v));
 		this.initialBaseNodeSize = baseNodes.size();
 
 		if (RunService.IsServer()) {
@@ -37,8 +37,8 @@ export class Network {
 			this.remoteEvent.Parent = ReplicatedStorage;
 
 			this.remoteEvent.OnServerEvent.Connect((player, request) => {
-				assert(request && typeof request == "object");
-				this.ProcessNetworkRequest(request, player);
+				assert(request && typeOf(request) === "table");
+				this.ProcessNetworkRequest(request as NetworkRequest, player);
 			});
 		} else {
 			this.remoteEvent = ReplicatedStorage.WaitForChild(
@@ -54,7 +54,7 @@ export class Network {
 			});
 		}
 
-		RunService.Heartbeat.Connect(this.ProcessNetworkTick);
+		RunService.Heartbeat.Connect(() => this.ProcessNetworkTick());
 	}
 
 	private AddReplicatableNode(node: StateNode) {
@@ -68,19 +68,17 @@ export class Network {
 
 	/**
 	 * Processes and Dispatches the Network Queue
-	 *
-	 * @param delta The time since the last tick
 	 */
-	private ProcessNetworkTick(delta: number) {
+	private ProcessNetworkTick() {
 		for (const [nodeID, node] of this.repicatableNodes) {
-			this.networkQueue.push(
-				...Packet.SignAll(node.getReplicator().getNetworkQueue(), nodeID),
+			Packet.SignAll(node.getReplicator().getNetworkQueue(), nodeID).forEach((v) =>
+				this.networkQueue.push(v),
 			);
 			node.getReplicator().clearNetworkQueue();
 		}
 		let networkRequestMap = Packet.UnwrapPackets(this.networkQueue);
 		for (const [target, request] of networkRequestMap) {
-			if (target == "server") {
+			if (target === "server") {
 				this.remoteEvent.FireServer(request);
 			} else {
 				this.remoteEvent.FireClient(target, request);
@@ -103,8 +101,8 @@ export class Network {
 				case "handshake": {
 					assert(RunService.IsServer(), "Handshake packet received on client");
 					if (
-						packet.name != this.lastBaseNodeName ||
-						packet.nodes != this.initialBaseNodeSize
+						packet.name !== this.lastBaseNodeName ||
+						packet.nodes !== this.initialBaseNodeSize
 					) {
 						(<Player>source).Kick("Invalid Handshake");
 					}

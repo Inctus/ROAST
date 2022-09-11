@@ -30,12 +30,13 @@ interface Receiver<T> {
 
 export class NodeSubscription<V, T extends LeafNode<V>> {
 	readonly middleware: Array<Middleware<any>> = new Array();
-	handlers: KeyedHandler<NodeSubscriptionFunction<T>>[] = [];
+	handlers: KeyedHandler<NodeSubscriptionFunction<V>>[] = [];
 
 	/** @hidden */
 	public fire() {}
 
 	public then<X>(v: (val: V) => X): Receiver<X> {
+		this.handlers.push([subtype.THEN, v]);
 		return this as unknown as Receiver<X>;
 	}
 
@@ -49,23 +50,6 @@ export class NodeSubscriptionBuilder {
 		return new NodeSubscription<V, LeafNode<V>>();
 	}
 }
-
-let sub = NodeSubscriptionBuilder.build<boolean>()
-	.then((v: boolean) => {
-		return 10;
-	})
-	.then((n: number) => {
-		return "hello";
-	})
-	.then((v: string) => {
-		throw "E!";
-	})
-	.catch((err: string) => {
-		return 10;
-	})
-	.then((n: number) => {
-		return 30;
-	});
 
 // .Subscribe([ROAST.SanityCheck.Position])
 // .then((val: LeafNode<number>) => {
@@ -113,10 +97,10 @@ export namespace Replication {
 	export function isWritableActor(actor: NetworkActor, scope: ScopeIndex): boolean {
 		switch (scope) {
 			case ScopeIndex.PRIVATE_CLIENT:
-				return actor == Players.LocalPlayer;
+				return actor === Players.LocalPlayer;
 			case ScopeIndex.PRIVATE_SERVER:
 			case ScopeIndex.PUBLIC_SERVER:
-				return actor == "server";
+				return actor === "server";
 			case ScopeIndex.PUBLIC_CLIENT:
 				// CHANGE THIS TO DETECT THE OWNER OF THE CURRENT BRANCH SOMEHOW
 				return true;
@@ -128,7 +112,9 @@ export namespace Replication {
 	export class Replicator {
 		constructor() {
 			if (RunService.IsServer()) {
-				Players.PlayerRemoving.Connect(this.removeSubscribedNetworkActor);
+				Players.PlayerRemoving.Connect((p) =>
+					this.removeSubscribedNetworkActor(p),
+				);
 			}
 		}
 

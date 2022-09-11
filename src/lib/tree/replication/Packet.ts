@@ -12,7 +12,7 @@ export interface NetworkRequest {
 	// Update Nodes
 	u?: ReplicatableNodeID[];
 	// Update Values
-	v?: any[];
+	v?: unknown[];
 	// Subscribe Nodes
 	s?: ReplicatableNodeID[];
 	// Handshake Number
