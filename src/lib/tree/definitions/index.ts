@@ -33,7 +33,7 @@ export class DefinitionBuilder {
 
 			node.setParent(parent);
 
-			if (Replication.isReplicatableScope(currentScope)) {
+			if (Replication.replicates(currentScope)) {
 				replicatableNodes.push(node);
 			}
 

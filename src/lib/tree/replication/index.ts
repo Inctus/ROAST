@@ -76,7 +76,7 @@ let sub = NodeSubscriptionBuilder.build<boolean>()
 // .then();
 
 export namespace Replication {
-	export function isReplicatableScope(scope: ScopeIndex): boolean {
+	export function replicates(scope: ScopeIndex): boolean {
 		switch (scope) {
 			case ScopeIndex.PUBLIC_CLIENT:
 			case ScopeIndex.PUBLIC_SERVER:
@@ -86,7 +86,7 @@ export namespace Replication {
 		}
 	}
 
-	export function amOwnerContext(scope: ScopeIndex): boolean {
+	export function amOwnerActor(scope: ScopeIndex): boolean {
 		if (RunService.IsServer()) {
 			return (
 				scope === ScopeIndex.PRIVATE_SERVER ||
@@ -100,6 +100,29 @@ export namespace Replication {
 
 	export function getActor(): NetworkActor {
 		return RunService.IsServer() ? "server" : Players.LocalPlayer;
+	}
+
+	export function getOwnerActor(scope: ScopeIndex) {
+		return scope === ScopeIndex.PRIVATE_SERVER ||
+			scope === ScopeIndex.PUBLIC_SERVER ||
+			scope === ScopeIndex.PUBLIC_CLIENT
+			? "server"
+			: Players.LocalPlayer;
+	}
+
+	export function isWritableActor(actor: NetworkActor, scope: ScopeIndex): boolean {
+		switch (scope) {
+			case ScopeIndex.PRIVATE_CLIENT:
+				return actor == Players.LocalPlayer;
+			case ScopeIndex.PRIVATE_SERVER:
+			case ScopeIndex.PUBLIC_SERVER:
+				return actor == "server";
+			case ScopeIndex.PUBLIC_CLIENT:
+				// CHANGE THIS TO DETECT THE OWNER OF THE CURRENT BRANCH SOMEHOW
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	export class Replicator {
@@ -127,15 +150,24 @@ export namespace Replication {
 		public enqueuePacket(packet: Wrapped<Unsigned<SignablePacket>>) {
 			this.networkQueue.push(packet);
 		}
-		public distributeUpdate(value: any, source: NetworkActor) {
-			if (Replication.amOwnerContext(this.scope)) {
+		public replicateUpdateFrom(value: any, source: NetworkActor) {
+			if (Replication.amOwnerActor(this.scope)) {
+				// DISTRIBUTE UPDATE TO SUBSCRIBED NETWORK ACTORS
 				this.enqueuePacket(
 					Packet.Update(
 						this.getTargetNetworkActors().filter((a) => a !== source),
 						value,
 					),
 				);
+			} else if (source !== Replication.getOwnerActor(this.scope)) {
+				// DISTRIBUTE UPDATE TO OWNER FOR SANITY CHECK
+				this.enqueuePacket(
+					Packet.Update([Replication.getOwnerActor(this.scope)], value),
+				);
 			}
+		}
+		public replicateUpdateTo(value: any, target: NetworkActor) {
+			this.enqueuePacket(Packet.Update([target], value));
 		}
 
 		private readonly subscribedNetworkActors: NetworkActor[] = [];

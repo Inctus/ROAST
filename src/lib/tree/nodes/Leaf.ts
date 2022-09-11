@@ -21,13 +21,18 @@ export class LeafNode<T> extends StateNode {
 	 * @returns
 	 */
 	public setValue(newValue: T, source: NetworkActor = Replication.getActor()): this {
-		// TODO -> fire local subscriptions
-
-		this.value = newValue;
-		// Propagate change upwards
-		this.Parent?.childChanged();
-		// Propagate change to subscribed NetworkActors excluding the source
-		this.getReplicator().distributeUpdate(newValue, source);
+		if (Replication.isWritableActor(source, this.getReplicator().getScope())) {
+			// TODO -> fire local subscriptions
+			this.value = newValue;
+			// Propagate change upwards
+			this.Parent?.childChanged();
+			// If I'm of a replicable scope, then replicate the update
+			if (Replication.replicates(this.getReplicator().getScope())) {
+				this.getReplicator().replicateUpdateFrom(newValue, source);
+			}
+		} else {
+			error("Attempt to set value when lacking write permissions");
+		}
 		return this;
 	}
 

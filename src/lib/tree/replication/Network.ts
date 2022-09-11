@@ -3,7 +3,7 @@ import { Replication } from ".";
 import { ReplicatableNodeID } from "../../global/Types";
 import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
-import { IndexableNode, StateNode } from "../nodes/StateNode";
+import { StateNode } from "../nodes/StateNode";
 import { VineNode } from "../nodes/Vine";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
@@ -118,15 +118,13 @@ export class Network {
 			switch (packet.type) {
 				case "update": {
 					if (node instanceof LeafNode) {
-						if (Replication.amOwnerContext(replicator.getScope())) {
+						if (Replication.amOwnerActor(replicator.getScope())) {
 							// TODO() -> RUN MIDDLEWARE
 							let middlewarePass: boolean = true;
 							if (middlewarePass) {
-								node.setValue(packet.value);
+								node.setValue(packet.value, source);
 							} else {
-								replicator.enqueuePacket(
-									Packet.Update([source], node.getValue()),
-								);
+								replicator.replicateUpdateTo(node.getValue(), source);
 							}
 						} else {
 							node.setValue(packet.value);
@@ -137,12 +135,10 @@ export class Network {
 					continue;
 				}
 				case "subscribe": {
-					if (Replication.amOwnerContext(replicator.getScope())) {
+					if (Replication.amOwnerActor(replicator.getScope())) {
 						if (node instanceof LeafNode) {
 							replicator.addSubscribedNetworkActor(source);
-							replicator.enqueuePacket(
-								Packet.Update([source], node.getValue()),
-							);
+							replicator.replicateUpdateTo(node.getValue(), source);
 						} else if (node instanceof BranchNode) {
 							// RECURSE DOWN THE TREE
 							// ADD SUBSCRIPTIONS TO EACH LEAF NODE AND VINE NODE LMAO
