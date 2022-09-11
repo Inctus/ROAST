@@ -38,6 +38,7 @@ export class Network {
 
 			this.remoteEvent.OnServerEvent.Connect((player, request) => {
 				assert(request && typeOf(request) === "table");
+				// TODO: Typecheck this.
 				this.ProcessNetworkRequest(request as NetworkRequest, player);
 			});
 		} else {
