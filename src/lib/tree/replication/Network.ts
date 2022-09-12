@@ -138,6 +138,7 @@ export class Network {
 					) {
 						(<Player>source).Kick("Invalid Handshake");
 					}
+					// HERE NEED TO SETUP PLAYERDATA ON THE SERVER, AND THEN SEND BACK THE PLAYERDATA IDS TO THE CLIENT
 					continue;
 				}
 			}

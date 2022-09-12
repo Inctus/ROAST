@@ -53,15 +53,6 @@ export class PublicClientScope<T extends StateTreeDefinition> extends StateNode 
 
 	constructor(private readonly templateChildren: (plr: Player) => T) {
 		super();
-
-		Players.PlayerAdded.Connect((plr) => {
-			this.mapToPlayers.set(
-				tostring(plr.UserId),
-				Nodes.Branch(this.templateChildren(plr)),
-			);
-		});
-
-		// REMOVE PLAYER WHEN THEY LEAVE AS WELL
 	}
 
 	public getPlayer(plr: Player): BranchNode<T> {
