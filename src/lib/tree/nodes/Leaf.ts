@@ -4,7 +4,7 @@ import { NetworkActor } from "../replication/Packet";
 import { StateNode } from "./StateNode";
 
 export class LeafNode<T> extends StateNode {
-	private readonly middleware: Middleware<T>[] = [];
+	private middleware: Middleware<T>[] = [];
 
 	constructor(private value: T | undefined) {
 		super();
@@ -12,6 +12,13 @@ export class LeafNode<T> extends StateNode {
 
 	public get(): Promise<T> {
 		return new Promise((res, rej) => {});
+	}
+
+	/**
+	 * @hidden Hidden for now.
+	 */
+	public getPrivateValue(): T | undefined {
+		return this.value;
 	}
 
 	/**
@@ -47,7 +54,17 @@ export class LeafNode<T> extends StateNode {
 	public setMiddleware(middleware: Middleware<T>[]): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
 			this.middleware.clear();
-			this.middleware.push(...middleware);
+			this.middleware = middleware;
+		} else {
+			error("Attempt to remove middleware when lacking write permissions");
+		}
+		return this;
+	}
+
+	public addMiddleware(middleware: Middleware<T>): this {
+		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+			this.middleware.clear();
+			this.middleware.push(middleware);
 		} else {
 			error("Attempt to remove middleware when lacking write permissions");
 		}
@@ -60,13 +77,19 @@ export class LeafNode<T> extends StateNode {
 	 * @returns The failing middleware, if any
 	 * @hidden
 	 */
-	public runMiddleware(newValue: T): Middleware<T> | undefined {
+	public runMiddleware(oldValue: T, newValue: T): Middleware<T> | undefined {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
-			this.middleware.forEach((middleware) => {
-				if (!middleware.check(newValue)) {
-					return middleware;
+			for (const middleware of this.middleware) {
+				try {
+					if (!middleware.check(oldValue, newValue)) {
+						return middleware;
+					}
+				} catch (e) {
+					warn(
+						`ROAST - Middleware "${middleware.name}" failed to run for node "${this.name}".`,
+					);
 				}
-			});
+			}
 		}
 		return;
 	}

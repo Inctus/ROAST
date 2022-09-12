@@ -31,6 +31,8 @@ export class DefinitionBuilder {
 				currentScope = node.getScope();
 			}
 
+			node.name = name;
+
 			node.setParent(parent);
 
 			if (Replication.replicates(currentScope)) {
