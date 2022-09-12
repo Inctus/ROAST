@@ -5,6 +5,7 @@ import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { StateNode } from "../nodes/StateNode";
 import { VineNode } from "../nodes/Vine";
+import { Middleware } from "./Middleware";
 import { NetworkRequest, NetworkActor, Packet, Wrapped } from "./Packet";
 
 export class Network {
@@ -84,16 +85,12 @@ export class Network {
 
 	private handleUpdate<T>(node: LeafNode<T>, value: T, source: NetworkActor) {
 		let replicator: Replication.Replicator<LeafNode<T>> = node.getReplicator();
-		if (Replication.amOwnerActor(replicator.getScope())) {
-			// TODO() -> RUN MIDDLEWARE
-			let middlewarePass: boolean = true;
-			if (middlewarePass) {
-				node.set(value, source);
-			} else {
-				replicator.replicateUpdateTo(node.get(), source);
-			}
+		let failedMiddleware: Middleware<T> | undefined = node.runMiddleware(value);
+		if (!failedMiddleware) {
+			node.set(value, source);
 		} else {
-			node.set(value);
+			replicator.replicateUpdateTo(node.get(), source);
+			failedMiddleware.fail();
 		}
 	}
 

@@ -1,6 +1,5 @@
 import { Players, RunService } from "@rbxts/services";
 import { ReplicationMode } from "../../global/Enums";
-import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
 import { IndexableNode, StateNode } from "../nodes/StateNode";
 import { NetworkActor, Packet, SignablePacket, Unsigned, Wrapped } from "./Packet";

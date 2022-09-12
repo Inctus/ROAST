@@ -1,8 +1,11 @@
 import { Replication } from "../replication";
+import { Middleware } from "../replication/Middleware";
 import { NetworkActor } from "../replication/Packet";
 import { StateNode } from "./StateNode";
 
 export class LeafNode<T> extends StateNode {
+	private readonly middleware: Map<string, Middleware<T>> = new Map();
+
 	constructor(private value: T | undefined) {
 		super();
 	}
@@ -34,6 +37,46 @@ export class LeafNode<T> extends StateNode {
 			error("Attempt to set value when lacking write permissions");
 		}
 		return this;
+	}
+
+	/**
+	 * Adds new Middleware to the leaf node
+	 * @param middleware The middleware to add
+	 * @returns The leaf node
+	 */
+	public addMiddleware(middleware: Middleware<T>): this {
+		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+			this.middleware.set(middleware.Name, middleware);
+		}
+		return this;
+	}
+
+	/**
+	 * Removes middleware from the leaf node
+	 * @param name The name of the middleware to remove
+	 */
+	public removeMiddleware(name: string): this {
+		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+			this.middleware.delete(name);
+		}
+		return this;
+	}
+
+	/**
+	 * Runs the middleware for this node
+	 * @param newValue The new value to check
+	 * @returns The failing middleware, if any
+	 * @hidden
+	 */
+	public runMiddleware(newValue: T): Middleware<T> | undefined {
+		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+			this.middleware.forEach((middleware) => {
+				if (!middleware.check(newValue)) {
+					return middleware;
+				}
+			});
+		}
+		return;
 	}
 
 	public subscribe(): this {
