@@ -47,6 +47,8 @@ export class LeafNode<T> extends StateNode {
 	public addMiddleware(middleware: Middleware<T>): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
 			this.middleware.set(middleware.Name, middleware);
+		} else {
+			error("Attempt to remove middleware when lacking write permissions");
 		}
 		return this;
 	}
@@ -58,6 +60,8 @@ export class LeafNode<T> extends StateNode {
 	public removeMiddleware(name: string): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
 			this.middleware.delete(name);
+		} else {
+			error("Attempt to remove middleware when lacking write permissions");
 		}
 		return this;
 	}
