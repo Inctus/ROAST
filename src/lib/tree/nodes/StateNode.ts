@@ -3,8 +3,9 @@ import { Replication } from "../replication";
 
 // TODO: check if abstract is required.
 export abstract class StateNode {
+	private readonly replicator: Replication.Replicator<this> =
+		new Replication.Replicator(this);
 	public Parent: StateNode | undefined;
-	private replicator: Replication.Replicator = new Replication.Replicator();
 
 	constructor() {}
 
@@ -16,8 +17,8 @@ export abstract class StateNode {
 		this.Parent = parent;
 	}
 
-	public getReplicator(): Replication.Replicator {
-		return this.replicator!;
+	public getReplicator(): Replication.Replicator<this> {
+		return this.replicator;
 	}
 
 	public setMiddleware(): this {

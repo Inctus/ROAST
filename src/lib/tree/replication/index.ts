@@ -2,6 +2,7 @@ import { Players, RunService } from "@rbxts/services";
 import { ReplicationMode } from "../../global/Enums";
 import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
+import { StateNode } from "../nodes/StateNode";
 import { NetworkActor, Packet, SignablePacket, Unsigned, Wrapped } from "./Packet";
 
 export type SubscriptionRejected = (reason: string) => void;
@@ -109,8 +110,18 @@ export namespace Replication {
 		}
 	}
 
-	export class Replicator {
-		constructor() {
+	export class Replicator<T extends StateNode> {
+		private scope: ScopeIndex = ScopeIndex.UNASSIGNED;
+		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
+		private readonly subscribedNetworkActors: NetworkActor[] = [];
+		private mode: ReplicationMode = ReplicationMode.ALL;
+		private predicate: (plr: Player) => boolean = () => true;
+
+		/**
+		 * Constructs a new Replicator for a Node
+		 * @hidden
+		 */
+		constructor(private readonly node: T) {
 			if (RunService.IsServer()) {
 				Players.PlayerRemoving.Connect((p) =>
 					this.removeSubscribedNetworkActor(p),
@@ -118,25 +129,59 @@ export namespace Replication {
 			}
 		}
 
-		private scope: ScopeIndex = ScopeIndex.UNASSIGNED;
-		public setScope(scope: ScopeIndex) {
+		/**
+		 * Assigns the scope of the Replicator
+		 * @param scope the scope to assign
+		 * @hidden
+		 */
+		public setScope(scope: ScopeIndex): this {
 			this.scope = scope;
+			return this;
 		}
-		public getScope() {
+
+		/**
+		 * Gets the scope of the Replicator
+		 * @returns the scope
+		 * @hidden
+		 */
+		public getScope(): ScopeIndex {
 			return this.scope;
 		}
 
-		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
-		public getNetworkQueue() {
+		/**
+		 * Gives back the NetworkQueue
+		 * @returns the network queue
+		 * @hidden
+		 */
+		public getNetworkQueue(): Wrapped<Unsigned<SignablePacket>>[] {
 			return this.networkQueue;
 		}
-		public clearNetworkQueue() {
+
+		/**
+		 * Clears the NetworkQueue
+		 * @hidden
+		 */
+		public clearNetworkQueue(): this {
 			this.networkQueue.clear();
+			return this;
 		}
-		public enqueuePacket(packet: Wrapped<Unsigned<SignablePacket>>) {
+
+		/**
+		 * Enqueues a packet to the NetworkQueue
+		 * @param packet the packet to enqueue
+		 * @hidden
+		 */
+		public enqueuePacket(packet: Wrapped<Unsigned<SignablePacket>>): this {
 			this.networkQueue.push(packet);
+			return this;
 		}
-		public replicateUpdateFrom(value: any, source: NetworkActor) {
+
+		/**
+		 * Replicates an update to the network
+		 * @param value The new value to replicate
+		 * @param source The origin of the value update
+		 */
+		public replicateUpdateFrom(value: any, source: NetworkActor): this {
 			if (Replication.amOwnerActor(this.scope)) {
 				// DISTRIBUTE UPDATE TO SUBSCRIBED NETWORK ACTORS
 				this.enqueuePacket(
@@ -151,18 +196,37 @@ export namespace Replication {
 					Packet.Update([Replication.getOwnerActor(this.scope)], value),
 				);
 			}
-		}
-		public replicateUpdateTo(value: any, target: NetworkActor) {
-			this.enqueuePacket(Packet.Update([target], value));
+			return this;
 		}
 
-		private readonly subscribedNetworkActors: NetworkActor[] = [];
-		public addSubscribedNetworkActor(actor: NetworkActor) {
+		/**
+		 * Replicates an update to a specific NetworkActor
+		 * @param value The new value to replicate
+		 * @param target The target of the value update
+		 */
+		public replicateUpdateTo(value: any, target: NetworkActor): this {
+			this.enqueuePacket(Packet.Update([target], value));
+			return this;
+		}
+
+		/**
+		 * Adds an Actor subscription to the Replicator
+		 * @param actor The actor to subscribe
+		 * @hidden
+		 */
+		public addSubscribedNetworkActor(actor: NetworkActor): this {
 			if (!this.subscribedNetworkActors.includes(actor)) {
 				this.subscribedNetworkActors.push(actor);
 			}
+			return this;
 		}
-		private removeSubscribedNetworkActor(actor: NetworkActor) {
+
+		/**
+		 * Removes an Actor subscription from the Replicator
+		 * @param actor The actor to unsubscribe
+		 * @hidden
+		 */
+		private removeSubscribedNetworkActor(actor: NetworkActor): this {
 			if (
 				this.subscribedNetworkActors.size() > 0 &&
 				this.subscribedNetworkActors.includes(actor)
@@ -171,8 +235,14 @@ export namespace Replication {
 					this.subscribedNetworkActors.indexOf(actor),
 				);
 			}
+			return this;
 		}
-		public getTargetNetworkActors() {
+
+		/**
+		 * Gets the list of NetworkActors to target with updates
+		 * @hidden
+		 */
+		public getTargetNetworkActors(): NetworkActor[] {
 			switch (this.mode) {
 				case ReplicationMode.ALL:
 					return this.subscribedNetworkActors;
@@ -186,14 +256,24 @@ export namespace Replication {
 			}
 		}
 
-		private mode: ReplicationMode = ReplicationMode.ALL;
-		public predicate: (plr: Player) => boolean = () => true;
+		/**
+		 * Sets the mode of replication
+		 * @param mode The mode to set
+		 * @returns The Replicator
+		 */
 		public setMode(mode: ReplicationMode): this {
 			this.mode = mode;
 			return this;
 		}
+
 		public getMode(): ReplicationMode {
 			return this.mode;
+		}
+
+		public setPredicate(predicate: (plr: Player) => boolean): this {
+			assert(this.mode === ReplicationMode.PREDICATE, "Invalid mode");
+			this.predicate = predicate;
+			return this;
 		}
 	}
 }
