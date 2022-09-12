@@ -46,6 +46,7 @@ export class LeafNode<T> extends StateNode {
 	 */
 	public setMiddleware(middleware: Middleware<T>[]): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+			this.middleware.clear();
 			this.middleware.push(...middleware);
 		} else {
 			error("Attempt to remove middleware when lacking write permissions");
