@@ -94,10 +94,7 @@ export class Network {
 		}
 	}
 
-	private handleSubscription<T extends StateNode, Q extends StateTreeDefinition>(
-		subscriber: NetworkActor,
-		node: T,
-	) {
+	private handleSubscription<T extends StateNode>(subscriber: NetworkActor, node: T) {
 		let replicator: Replication.Replicator<T> = node.getReplicator();
 		if (Replication.amOwnerActor(replicator.getScope())) {
 			if (node instanceof LeafNode) {
@@ -108,8 +105,8 @@ export class Network {
 				//replicator.replicateVineTo(subscriber);
 				// SEND BACK ALL VINE NODES CURRENTLY INSTANCIATED WITH
 				// VINE UPDATE PACKETS
-			} else if (node instanceof BranchNode<Q>) {
-				for (const [_, child] of pairs(node.getSubstates() as Q)) {
+			} else if (node instanceof BranchNode) {
+				for (const [_, child] of pairs(node.getSubstates())) {
 					this.handleSubscription(subscriber, <StateNode>child);
 				}
 			} else {

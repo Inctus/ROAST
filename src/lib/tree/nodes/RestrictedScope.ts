@@ -1,5 +1,3 @@
-import { Players } from "@rbxts/services";
-import { Nodes } from ".";
 import { StateTreeDefinition } from "../../global/Types";
 import { IndexableNode, StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
@@ -53,6 +51,9 @@ export class PublicClientScope<T extends StateTreeDefinition> extends StateNode 
 
 	constructor(private readonly templateChildren: (plr: Player) => T) {
 		super();
+
+		// ON THE CLIENT, CREATE THE LOCAL TREE!!!
+		// ON THE SERVER, WAIT FOR HANDSHAKES TO COME IN AND THEN CREATE TREES FOR EACH PLAYER
 	}
 
 	public getPlayer(plr: Player): BranchNode<T> {
