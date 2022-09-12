@@ -1,4 +1,4 @@
-import { ReplicatableNodeID } from "../../global/Types";
+import { Replication } from ".";
 
 export type NetworkActor = Player | "server";
 export type Packet = Packet.Update | Packet.Subscribe | Packet.Handshake;
@@ -10,11 +10,11 @@ export interface Wrapped<T extends Packet | Unsigned<SignablePacket>> {
 }
 export interface NetworkRequest {
 	// Update Nodes
-	u?: ReplicatableNodeID[];
+	u?: Replication.NodeID[];
 	// Update Values
 	v?: unknown[];
 	// Subscribe Nodes
-	s?: ReplicatableNodeID[];
+	s?: Replication.NodeID[];
 	// Handshake Number
 	h?: number;
 	// Handshake Name
@@ -25,7 +25,7 @@ export namespace Packet {
 	export interface Subscribe {
 		type: "subscribe";
 		// The NodeID being subscribed to
-		nodeid: ReplicatableNodeID;
+		nodeid: Replication.NodeID;
 	}
 
 	/**
@@ -46,7 +46,7 @@ export namespace Packet {
 	export interface Update {
 		type: "update";
 		// The NodeID being updated
-		nodeid: ReplicatableNodeID;
+		nodeid: Replication.NodeID;
 		// The new value of the Node
 		value: any;
 	}
@@ -97,7 +97,7 @@ export namespace Packet {
 
 	export function Sign<T extends SignablePacket>(
 		packet: Unsigned<T>,
-		nodeID: ReplicatableNodeID,
+		nodeID: Replication.NodeID,
 	): T {
 		switch (packet.type) {
 			case "subscribe":
@@ -118,7 +118,7 @@ export namespace Packet {
 
 	export function SignAll(
 		unsigned: Wrapped<Unsigned<SignablePacket>>[],
-		nodeID: ReplicatableNodeID,
+		nodeID: Replication.NodeID,
 	): Wrapped<Packet>[] {
 		for (const packet of unsigned) {
 			packet.packet = Sign(packet.packet, nodeID);
@@ -158,9 +158,9 @@ export namespace Packet {
 	 * @returns A NetworkRequest
 	 */
 	function GenerateNetworkRequest(packets: Packet[]): NetworkRequest {
-		let updateNodeIDs: ReplicatableNodeID[] = [];
+		let updateNodeIDs: Replication.NodeID[] = [];
 		let updateValues: any[] = [];
-		let subscribeNodeIDs: ReplicatableNodeID[] = [];
+		let subscribeNodeIDs: Replication.NodeID[] = [];
 		let handshakeNumber: number | undefined;
 		let handshakeName: string | undefined;
 

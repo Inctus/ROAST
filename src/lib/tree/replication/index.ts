@@ -2,65 +2,13 @@ import { Players, RunService } from "@rbxts/services";
 import { ReplicationMode } from "../../global/Enums";
 import { LeafNode } from "../nodes/Leaf";
 import { ScopeIndex } from "../nodes/RestrictedScope";
-import { StateNode } from "../nodes/StateNode";
+import { IndexableNode, StateNode } from "../nodes/StateNode";
 import { NetworkActor, Packet, SignablePacket, Unsigned, Wrapped } from "./Packet";
 
-export type SubscriptionRejected = (reason: string) => void;
-export type SubscriptionResolved = (e: any) => void;
-export type NodeSubscriptionFunction<T> = (val: T) => void;
-
-enum subtype {
-	THEN,
-	CATCH,
-	FAILED,
-}
-
-export type KeyedHandler<T> = [subtype, T];
-
-export class Middleware<T> {
-	public readonly name = "";
-
-	public constructor(name: string, handler: (node: LeafNode<T>) => void) {}
-}
-
-interface Receiver<T> {
-	then<X>(v: (val: T) => X): Receiver<X>;
-
-	catch<X>(v: (err: string) => X): Receiver<X>;
-}
-
-export class NodeSubscription<V, T extends LeafNode<V>> {
-	readonly middleware: Array<Middleware<any>> = new Array();
-	handlers: KeyedHandler<NodeSubscriptionFunction<V>>[] = [];
-
-	/** @hidden */
-	public fire() {}
-
-	public then<X>(v: (val: V) => X): Receiver<X> {
-		this.handlers.push([subtype.THEN, v]);
-		return this as unknown as Receiver<X>;
-	}
-
-	public catch<X>(v: (err: string) => X): Receiver<X> {
-		return this as unknown as Receiver<X>;
-	}
-}
-
-export class NodeSubscriptionBuilder {
-	public static build<V>() {
-		return new NodeSubscription<V, LeafNode<V>>();
-	}
-}
-
-// .Subscribe([ROAST.SanityCheck.Position])
-// .then((val: LeafNode<number>) => {
-// 	let
-// })
-// .catch(() => {})
-// .then()
-// .then();
-
 export namespace Replication {
+	export type Predicate = (player: Player) => boolean;
+	export type NodeID = number;
+
 	export function replicates(scope: ScopeIndex): boolean {
 		switch (scope) {
 			case ScopeIndex.PUBLIC_CLIENT:
@@ -115,7 +63,7 @@ export namespace Replication {
 		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
 		private readonly subscribedNetworkActors: NetworkActor[] = [];
 		private mode: ReplicationMode = ReplicationMode.ALL;
-		private predicate: (plr: Player) => boolean = () => true;
+		private predicate: Predicate = () => true;
 
 		/**
 		 * Constructs a new Replicator for a Node
@@ -257,12 +205,17 @@ export namespace Replication {
 		}
 
 		/**
-		 * Sets the mode of replication
+		 * Sets the mode of replication, recursively to all children
 		 * @param mode The mode to set
 		 * @returns The Replicator
 		 */
 		public setMode(mode: ReplicationMode): this {
 			this.mode = mode;
+			if (this.node instanceof IndexableNode) {
+				for (const [_, child] of pairs(this.node.getSubstates())) {
+					child.getReplicator().setMode(mode);
+				}
+			}
 			return this;
 		}
 
@@ -270,9 +223,19 @@ export namespace Replication {
 			return this.mode;
 		}
 
-		public setPredicate(predicate: (plr: Player) => boolean): this {
+		/**
+		 * Sets the predicate of replication, recursively to all children
+		 * @param predicate The predicate to set
+		 * @returns The Replicator
+		 */
+		public setPredicate(predicate: Predicate): this {
 			assert(this.mode === ReplicationMode.PREDICATE, "Invalid mode");
 			this.predicate = predicate;
+			if (this.node instanceof IndexableNode) {
+				for (const [_, child] of pairs(this.node.getSubstates())) {
+					child.getReplicator().setPredicate(predicate);
+				}
+			}
 			return this;
 		}
 	}

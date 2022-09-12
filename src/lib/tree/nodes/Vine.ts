@@ -2,14 +2,14 @@ import { Nodes } from ".";
 import { StateTreeDefinition } from "../../global/Types";
 import { StateNode } from "./StateNode";
 import { BranchNode } from "./Branch";
-import { ReplicatableNodeID } from "../../global/Types";
+import { Replication } from "../replication";
 
 export class VineNode<
 	T extends StateTreeDefinition,
 	R extends unknown[],
 > extends StateNode {
-	private mapToID: Map<ReplicatableNodeID, BranchNode<T>> = new Map<
-		ReplicatableNodeID,
+	private mapToID: Map<Replication.NodeID, BranchNode<T>> = new Map<
+		Replication.NodeID,
 		BranchNode<T>
 	>();
 

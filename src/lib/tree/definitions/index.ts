@@ -40,7 +40,7 @@ export class DefinitionBuilder {
 			if (node instanceof IndexableNode) {
 				DefinitionBuilder.definitionTraversal(
 					node,
-					node.paths,
+					node.getSubstates(),
 					currentScope,
 					replicatableNodes,
 				);
@@ -61,7 +61,7 @@ export class DefinitionBuilder {
 			if (node instanceof RestrictedScope) {
 				lastName = DefinitionBuilder.definitionTraversal(
 					node,
-					node.paths,
+					node.getSubstates(),
 					node.getScope(),
 					replicatableNodes,
 				);

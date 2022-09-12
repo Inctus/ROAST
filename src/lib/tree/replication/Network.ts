@@ -1,6 +1,6 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { Replication } from ".";
-import { ReplicatableNodeID, StateTreeDefinition } from "../../global/Types";
+import { StateTreeDefinition } from "../../global/Types";
 import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { StateNode } from "../nodes/StateNode";
@@ -18,9 +18,9 @@ export class Network {
 	 */
 	private readonly remoteEvent;
 	private readonly networkQueue: Wrapped<Packet>[] = [];
-	private readonly repicatableNodes: Map<ReplicatableNodeID, StateNode> = new Map();
+	private readonly repicatableNodes: Map<Replication.NodeID, StateNode> = new Map();
 	private readonly initialBaseNodeSize: number;
-	private currentNodeID: ReplicatableNodeID = 0;
+	private currentNodeID: Replication.NodeID = 0;
 
 	// Pre: Tree is built
 	constructor(name: string, nodes: StateNode[], private readonly lastNodeName: string) {
@@ -57,7 +57,7 @@ export class Network {
 		this.currentNodeID++;
 	}
 
-	private removeReplicatableNode(nodeID: ReplicatableNodeID) {
+	private removeReplicatableNode(nodeID: Replication.NodeID) {
 		this.repicatableNodes.delete(nodeID);
 	}
 
