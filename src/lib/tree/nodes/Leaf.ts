@@ -7,7 +7,7 @@ export class LeafNode<T> extends StateNode {
 		super();
 	}
 
-	public getValue(): Promise<T> {
+	public get(): Promise<T> {
 		return new Promise((res, rej) => {});
 	}
 
@@ -20,7 +20,7 @@ export class LeafNode<T> extends StateNode {
 	 * @hidden @param source The NetworkActor source of the change
 	 * @returns
 	 */
-	public setValue(newValue: T, source: NetworkActor = Replication.getActor()): this {
+	public set(newValue: T, source: NetworkActor = Replication.getActor()): this {
 		if (Replication.isWritableActor(source, this.getReplicator().getScope())) {
 			// TODO -> fire local subscriptions
 			this.value = newValue;

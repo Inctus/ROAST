@@ -1,6 +1,6 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { Replication } from ".";
-import { ReplicatableNodeID } from "../../global/Types";
+import { ReplicatableNodeID, StateTreeDefinition } from "../../global/Types";
 import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { StateNode } from "../nodes/StateNode";
@@ -23,54 +23,48 @@ export class Network {
 	private currentNodeID: ReplicatableNodeID = 0;
 
 	// Pre: Tree is built
-	constructor(
-		remoteEventName: string,
-		baseNodes: StateNode[],
-		private readonly lastBaseNodeName: string,
-	) {
-		baseNodes.forEach((v) => this.AddReplicatableNode(v));
-		this.initialBaseNodeSize = baseNodes.size();
+	constructor(name: string, nodes: StateNode[], private readonly lastNodeName: string) {
+		nodes.forEach((v) => this.addReplicatableNode(v));
+		this.initialBaseNodeSize = nodes.size();
 
 		if (RunService.IsServer()) {
 			this.remoteEvent = new Instance("RemoteEvent");
-			this.remoteEvent.Name = remoteEventName;
+			this.remoteEvent.Name = name;
 			this.remoteEvent.Parent = ReplicatedStorage;
 
 			this.remoteEvent.OnServerEvent.Connect((player, request) => {
 				assert(request && typeOf(request) === "table");
 				// TODO: Typecheck this.
-				this.ProcessNetworkRequest(request as NetworkRequest, player);
+				this.processNetworkRequest(request as NetworkRequest, player);
 			});
 		} else {
-			this.remoteEvent = ReplicatedStorage.WaitForChild(
-				remoteEventName,
-			) as RemoteEvent;
+			this.remoteEvent = ReplicatedStorage.WaitForChild(name) as RemoteEvent;
 
 			this.networkQueue.push(
-				Packet.Handshake(this.initialBaseNodeSize, this.lastBaseNodeName),
+				Packet.Handshake(this.initialBaseNodeSize, this.lastNodeName),
 			);
 
 			this.remoteEvent.OnClientEvent.Connect((request: NetworkRequest) => {
-				this.ProcessNetworkRequest(request, "server");
+				this.processNetworkRequest(request, "server");
 			});
 		}
 
-		RunService.Heartbeat.Connect(() => this.ProcessNetworkTick());
+		RunService.Heartbeat.Connect(() => this.processNetworkTick());
 	}
 
-	private AddReplicatableNode(node: StateNode) {
+	private addReplicatableNode(node: StateNode) {
 		this.repicatableNodes.set(this.currentNodeID, node);
 		this.currentNodeID++;
 	}
 
-	private RemoveReplicatableNode(nodeID: ReplicatableNodeID) {
+	private removeReplicatableNode(nodeID: ReplicatableNodeID) {
 		this.repicatableNodes.delete(nodeID);
 	}
 
 	/**
 	 * Processes and Dispatches the Network Queue
 	 */
-	private ProcessNetworkTick() {
+	private processNetworkTick() {
 		for (const [nodeID, node] of this.repicatableNodes) {
 			Packet.SignAll(node.getReplicator().getNetworkQueue(), nodeID).forEach((v) =>
 				this.networkQueue.push(v),
@@ -88,21 +82,61 @@ export class Network {
 		this.networkQueue.clear();
 	}
 
+	private handleUpdate<T>(node: LeafNode<T>, value: T, source: NetworkActor) {
+		let replicator: Replication.Replicator<LeafNode<T>> = node.getReplicator();
+		if (Replication.amOwnerActor(replicator.getScope())) {
+			// TODO() -> RUN MIDDLEWARE
+			let middlewarePass: boolean = true;
+			if (middlewarePass) {
+				node.set(value, source);
+			} else {
+				replicator.replicateUpdateTo(node.get(), source);
+			}
+		} else {
+			node.set(value);
+		}
+	}
+
+	private handleSubscription<T extends StateNode, Q extends StateTreeDefinition>(
+		subscriber: NetworkActor,
+		node: T,
+	) {
+		let replicator: Replication.Replicator<T> = node.getReplicator();
+		if (Replication.amOwnerActor(replicator.getScope())) {
+			if (node instanceof LeafNode) {
+				replicator.addSubscribedNetworkActor(subscriber);
+				replicator.replicateUpdateTo(node.get(), subscriber);
+			} else if (node instanceof VineNode) {
+				replicator.addSubscribedNetworkActor(subscriber);
+				//replicator.replicateVineTo(subscriber);
+				// SEND BACK ALL VINE NODES CURRENTLY INSTANCIATED WITH
+				// VINE UPDATE PACKETS
+			} else if (node instanceof BranchNode<Q>) {
+				for (const [_, child] of pairs(node.getSubstates() as Q)) {
+					this.handleSubscription(subscriber, <StateNode>child);
+				}
+			} else {
+				error("Attempt to subscribe to non-subscribable node");
+			}
+		} else {
+			error("Received a subscribe packet on a non-owner context");
+		}
+	}
+
 	/**
 	 * Processes a NetworkRequest
 	 *
 	 * @param request The incoming NetworkRequest to process
 	 * @param source The source of the NetworkRequest
 	 */
-	private ProcessNetworkRequest(request: NetworkRequest, source: NetworkActor) {
+	private processNetworkRequest(request: NetworkRequest, source: NetworkActor) {
 		let receivedPackets: Packet[] = Packet.ParseNetworkRequest(request);
 		for (const packet of receivedPackets) {
-			// Unsigned Packets
 			switch (packet.type) {
 				case "handshake": {
 					assert(RunService.IsServer(), "Handshake packet received on client");
 					if (
-						packet.name !== this.lastBaseNodeName ||
+						packet.name !== this.lastNodeName ||
 						packet.nodes !== this.initialBaseNodeSize
 					) {
 						(<Player>source).Kick("Invalid Handshake");
@@ -110,46 +144,19 @@ export class Network {
 					continue;
 				}
 			}
-			// Signed Packets
 			let node = this.repicatableNodes.get(packet.nodeid);
 			assert(node, "Invalid Node ID");
-			let replicator = node.getReplicator();
 			switch (packet.type) {
 				case "update": {
 					if (node instanceof LeafNode) {
-						if (Replication.amOwnerActor(replicator.getScope())) {
-							// TODO() -> RUN MIDDLEWARE
-							let middlewarePass: boolean = true;
-							if (middlewarePass) {
-								node.setValue(packet.value, source);
-							} else {
-								replicator.replicateUpdateTo(node.getValue(), source);
-							}
-						} else {
-							node.setValue(packet.value);
-						}
+						this.handleUpdate(node, packet.value, source);
 					} else {
 						error("Attempt to update non-leaf node");
 					}
 					continue;
 				}
 				case "subscribe": {
-					if (Replication.amOwnerActor(replicator.getScope())) {
-						if (node instanceof LeafNode) {
-							replicator.addSubscribedNetworkActor(source);
-							replicator.replicateUpdateTo(node.getValue(), source);
-						} else if (node instanceof BranchNode) {
-							// RECURSE DOWN THE TREE
-							// ADD SUBSCRIPTIONS TO EACH LEAF NODE AND VINE NODE LMAO
-							// GENERATE UPDATE PACKETS FOR EACH LEAF NODE AND VINE NODE
-						} else if (node instanceof VineNode) {
-							// ADD SUBSCRIPTION TO VINE NODE
-						} else {
-							error("Attempt to subscribe to non-subscribable node");
-						}
-					} else {
-						error("Received a subscribe packet on a non-owner context");
-					}
+					this.handleSubscription(source, node);
 					continue;
 				}
 			}

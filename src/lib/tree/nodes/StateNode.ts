@@ -31,9 +31,7 @@ export abstract class StateNode {
 }
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
-	paths: T;
-
-	constructor(paths: T) {
+	constructor(private readonly paths: T) {
 		super();
 
 		this.paths = paths;
@@ -41,5 +39,9 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 
 	public get<K extends keyof T & string>(key: K): T[K] {
 		return this.paths[key];
+	}
+
+	public getSubstates(): T {
+		return this.paths;
 	}
 }
