@@ -4,7 +4,7 @@ import { NetworkActor } from "../replication/Packet";
 import { StateNode } from "./StateNode";
 
 export class LeafNode<T> extends StateNode {
-	private readonly middleware: Map<string, Middleware<T>> = new Map();
+	private readonly middleware: Middleware<T>[] = [];
 
 	constructor(private value: T | undefined) {
 		super();
@@ -44,22 +44,9 @@ export class LeafNode<T> extends StateNode {
 	 * @param middleware The middleware to add
 	 * @returns The leaf node
 	 */
-	public addMiddleware(middleware: Middleware<T>): this {
+	public setMiddleware(middleware: Middleware<T>[]): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
-			this.middleware.set(middleware.Name, middleware);
-		} else {
-			error("Attempt to remove middleware when lacking write permissions");
-		}
-		return this;
-	}
-
-	/**
-	 * Removes middleware from the leaf node
-	 * @param name The name of the middleware to remove
-	 */
-	public removeMiddleware(name: string): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
-			this.middleware.delete(name);
+			this.middleware.push(...middleware);
 		} else {
 			error("Attempt to remove middleware when lacking write permissions");
 		}

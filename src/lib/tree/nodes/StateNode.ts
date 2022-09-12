@@ -23,10 +23,6 @@ export abstract class StateNode {
 		return this.replicator;
 	}
 
-	public setMiddleware(): this {
-		return this;
-	}
-
 	public childChanged() {
 		this.Parent?.childChanged();
 	}
@@ -51,28 +47,11 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 	 * Adds new Middleware recursively to all leaf nodes beneath this node
 	 * @param middleware The middleware to add
 	 */
-	public addMiddleware<T>(middleware: Middleware<T>): this {
+	public setMiddleware<T>(middleware: Middleware<T>[]): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
 			for (const [_, substate] of pairs(this.substates)) {
 				if (substate instanceof LeafNode<T> || substate instanceof IndexableNode) {
-					substate.addMiddleware(middleware);
-				}
-			}
-		} else {
-			error("Attempt to remove middleware when lacking write permissions");
-		}
-		return this;
-	}
-
-	/**
-	 * Removes Middleware recursively from all leaf nodes beneath this node
-	 * @param name The name of the middleware to remove
-	 */
-	public removeMiddleware(name: string): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
-			for (const [_, substate] of pairs(this.substates)) {
-				if (substate instanceof LeafNode || substate instanceof IndexableNode) {
-					substate.removeMiddleware(name);
+					substate.setMiddleware(middleware);
 				}
 			}
 		} else {
