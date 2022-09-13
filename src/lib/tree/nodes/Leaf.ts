@@ -1,24 +1,46 @@
 import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
-import { NetworkActor } from "../replication/Packet";
-import { StateNode } from "./StateNode";
+import { NetworkActor, Packet } from "../replication/Packet";
+import { NodeStatus, StateNode } from "./StateNode";
+import { NodeSubscription } from "./Subscription";
 
 export class LeafNode<T> extends StateNode {
 	private middleware: Middleware<T>[] = [];
+	private readonly unresolvedGets: ((value: T) => void)[] = [];
+	// private readonly subscriptions: NodeSubscription<T>[] = [];
 
 	constructor(private value: T | undefined) {
 		super();
 	}
 
-	public get(): Promise<T> {
-		return new Promise((res, rej) => {});
+	public subscribe(): this {
+		if (this.state === NodeStatus.INCONSISTENT) {
+			this.state = NodeStatus.SUBSCRIBING;
+			this.replicator.enqueuePacket(Packet.Subscribe());
+			return this;
+		}
+		// ADD SUBSCRIPTION TO LIST OF SUBSCRIPTIONS
+		return this;
 	}
 
-	/**
-	 * @hidden Hidden for now.
-	 */
-	public getPrivateValue(): T | undefined {
-		return this.value;
+	public get(): Promise<T> {
+		assert(Replication.canRead(this.replicator.getScope()));
+		return new Promise((resolve) => {
+			switch (this.state) {
+				case NodeStatus.INCONSISTENT:
+					this.subscribe();
+				case NodeStatus.SUBSCRIBING:
+					this.unresolvedGets.push(resolve);
+					break;
+				case NodeStatus.CONSISTENT: {
+					if (this.value !== undefined) {
+						resolve(this.value);
+					} else {
+						this.unresolvedGets.push(resolve);
+					}
+				}
+			}
+		});
 	}
 
 	/**
@@ -31,17 +53,14 @@ export class LeafNode<T> extends StateNode {
 	 * @returns
 	 */
 	public set(newValue: T, source: NetworkActor = Replication.getActor()): this {
-		if (Replication.isWritableActor(source, this.getReplicator().getScope())) {
-			// TODO -> fire local subscriptions
-			this.value = newValue;
-			// Propagate change upwards
-			this.Parent?.childChanged();
-			// If I'm of a replicable scope, then replicate the update
-			if (Replication.replicates(this.getReplicator().getScope())) {
-				this.getReplicator().replicateUpdateFrom(newValue, source);
-			}
-		} else {
-			error("Attempt to set value when lacking write permissions");
+		assert(Replication.actorCanWrite(source, this.replicator.getScope()));
+		// TODO -> fire local subscriptions
+		this.value = newValue;
+		// Propagate change upwards
+		this.parent?.childChanged();
+		// If I'm of a replicable scope, then replicate the update
+		if (Replication.replicates(this.replicator.getScope())) {
+			this.replicator.replicateUpdateFrom(newValue, source);
 		}
 		return this;
 	}
@@ -52,7 +71,7 @@ export class LeafNode<T> extends StateNode {
 	 * @returns The leaf node
 	 */
 	public setMiddleware(middleware: Middleware<T>[]): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			this.middleware.clear();
 			this.middleware = middleware;
 		} else {
@@ -62,7 +81,7 @@ export class LeafNode<T> extends StateNode {
 	}
 
 	public addMiddleware(middleware: Middleware<T>): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			this.middleware.push(middleware);
 		} else {
 			error("Attempt to add middleware when lacking write permissions");
@@ -77,7 +96,7 @@ export class LeafNode<T> extends StateNode {
 	 * @hidden
 	 */
 	public runMiddleware(oldValue: T, newValue: T): Middleware<T> | undefined {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			for (const middleware of this.middleware) {
 				try {
 					if (!middleware.check(oldValue, newValue)) {
@@ -93,9 +112,5 @@ export class LeafNode<T> extends StateNode {
 			}
 		}
 		return;
-	}
-
-	public subscribe(): this {
-		return this;
 	}
 }

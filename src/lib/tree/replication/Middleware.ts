@@ -1,6 +1,6 @@
 export enum MiddlewareType {
-	Error,
-	Warning,
+	ERROR,
+	WARNING,
 }
 
 export type MiddlewareCheck<T> = (oldValue: T, newValue: T) => boolean;
@@ -18,9 +18,9 @@ export class Middleware<T> {
 
 	public fail() {
 		switch (this.type) {
-			case MiddlewareType.Error:
+			case MiddlewareType.ERROR:
 				error(`Middleware ${this.name} failed!`);
-			case MiddlewareType.Warning:
+			case MiddlewareType.WARNING:
 				warn(`Middleware ${this.name} failed!`);
 		}
 	}

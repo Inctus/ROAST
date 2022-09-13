@@ -42,7 +42,7 @@ export namespace Replication {
 			: Players.LocalPlayer;
 	}
 
-	export function isWritableActor(actor: NetworkActor, scope: ScopeIndex): boolean {
+	export function actorCanWrite(actor: NetworkActor, scope: ScopeIndex): boolean {
 		switch (scope) {
 			case ScopeIndex.PRIVATE_CLIENT:
 				return actor === Players.LocalPlayer;
@@ -51,6 +51,20 @@ export namespace Replication {
 				return actor === "server";
 			case ScopeIndex.PUBLIC_CLIENT:
 				// CHANGE THIS TO DETECT THE OWNER OF THE CURRENT BRANCH SOMEHOW
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	export function canRead(scope: ScopeIndex): boolean {
+		switch (scope) {
+			case ScopeIndex.PRIVATE_CLIENT:
+				return RunService.IsClient();
+			case ScopeIndex.PRIVATE_SERVER:
+				return RunService.IsServer();
+			case ScopeIndex.PUBLIC_SERVER:
+			case ScopeIndex.PUBLIC_CLIENT:
 				return true;
 			default:
 				return false;

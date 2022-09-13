@@ -3,25 +3,36 @@ import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
 import { LeafNode } from "./Leaf";
 
+export enum NodeStatus {
+	INCONSISTENT,
+	CONSISTENT,
+	SUBSCRIBING
+}
+
 // TODO: check if abstract is required.
 export abstract class StateNode {
-	private readonly replicator: Replication.Replicator<this> =
+	protected readonly replicator: Replication.Replicator<this> =
 		new Replication.Replicator(this);
-	public Parent?: StateNode;
-	public Name?: string;
+	protected state: NodeStatus = NodeStatus.INCONSISTENT;
+	public parent?: StateNode;
+	public name?: string;
 
 	constructor() {}
+
+	public setState(state: NodeStatus) {
+		this.state = state;
+	}
 
 	public getReplicator(): Replication.Replicator<this> {
 		return this.replicator;
 	}
 
 	public childChanged() {
-		this.Parent?.childChanged();
+		this.parent?.childChanged();
 	}
 
 	public getFullName(): string {
-		return this.Parent?.getFullName() + "/" + this.Name;
+		return this.parent?.getFullName() + "/" + this.name;
 	}
 }
 
@@ -45,7 +56,7 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 	 * @param middleware The middleware to add
 	 */
 	public setMiddleware<T>(middleware: Middleware<T>[]): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			for (const [_, substate] of pairs(this.substates)) {
 				if (substate instanceof LeafNode<T> || substate instanceof IndexableNode) {
 					substate.setMiddleware(middleware);
@@ -58,7 +69,7 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 	}
 
 	public addMiddleware<T>(middleware: Middleware<T>): this {
-		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
+		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			for (const [_, substate] of pairs(this.substates)) {
 				if (substate instanceof LeafNode<T> || substate instanceof IndexableNode) {
 					substate.addMiddleware(middleware);

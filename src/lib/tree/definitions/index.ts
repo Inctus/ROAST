@@ -1,6 +1,6 @@
 import { StateTreeDefinition } from "../../global/Types";
 import { RestrictedScope, ScopeIndex } from "../nodes/RestrictedScope";
-import { IndexableNode, StateNode } from "../nodes/StateNode";
+import { IndexableNode, NodeStatus, StateNode } from "../nodes/StateNode";
 import { Replication } from "../replication";
 import { Network } from "../replication/Network";
 
@@ -31,8 +31,12 @@ export class DefinitionBuilder {
 				currentScope = node.getScope();
 			}
 
-			node.Name = name;
-			node.Parent = parent;
+			node.name = name;
+			node.parent = parent;
+
+			if (Replication.amOwnerActor(currentScope)) {
+				node.setState(NodeStatus.CONSISTENT);
+			}
 
 			if (Replication.replicates(currentScope)) {
 				replicatableNodes.push(node);
@@ -66,7 +70,7 @@ export class DefinitionBuilder {
 					node.getScope(),
 					replicatableNodes,
 				);
-				node.Name = "~/" + name;
+				node.name = "~/" + name;
 			} else {
 				warn(
 					`[ROAST] DefinitionBuilder: ${name} is not a RestrictedScope/Scope object.`,
