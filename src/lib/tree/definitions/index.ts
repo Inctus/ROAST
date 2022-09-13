@@ -31,9 +31,8 @@ export class DefinitionBuilder {
 				currentScope = node.getScope();
 			}
 
-			node.name = name;
-
-			node.setParent(parent);
+			node.Name = name;
+			node.Parent = parent;
 
 			if (Replication.replicates(currentScope)) {
 				replicatableNodes.push(node);
@@ -59,7 +58,7 @@ export class DefinitionBuilder {
 	): Definition<T> {
 		let replicatableNodes: StateNode[] = [];
 		let lastName: string = "";
-		for (let [name, node] of pairs(definition)) {
+		for (let [name, node] of pairs(definition as StateTreeDefinition)) {
 			if (node instanceof RestrictedScope) {
 				lastName = DefinitionBuilder.definitionTraversal(
 					node,
@@ -67,6 +66,7 @@ export class DefinitionBuilder {
 					node.getScope(),
 					replicatableNodes,
 				);
+				node.Name = "~/" + name;
 			} else {
 				warn(
 					`[ROAST] DefinitionBuilder: ${name} is not a RestrictedScope/Scope object.`,

@@ -7,18 +7,10 @@ import { LeafNode } from "./Leaf";
 export abstract class StateNode {
 	private readonly replicator: Replication.Replicator<this> =
 		new Replication.Replicator(this);
-	public Parent: StateNode | undefined;
-	public name?: string;
+	public Parent?: StateNode;
+	public Name?: string;
 
 	constructor() {}
-
-	/**
-	 * **WARNING**: Do not use this.
-	 * @hidden
-	 */
-	public setParent(parent: StateNode) {
-		this.Parent = parent;
-	}
 
 	public getReplicator(): Replication.Replicator<this> {
 		return this.replicator;
@@ -26,6 +18,10 @@ export abstract class StateNode {
 
 	public childChanged() {
 		this.Parent?.childChanged();
+	}
+
+	public getFullName(): string {
+		return this.Parent?.getFullName() + "/" + this.Name;
 	}
 }
 
@@ -56,7 +52,7 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 				}
 			}
 		} else {
-			error("Attempt to remove middleware when lacking write permissions");
+			error("Attempt to set middleware when lacking write permissions");
 		}
 		return this;
 	}
@@ -69,7 +65,7 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 				}
 			}
 		} else {
-			error("Attempt to remove middleware when lacking write permissions");
+			error("Attempt to add middleware when lacking write permissions");
 		}
 		return this;
 	}

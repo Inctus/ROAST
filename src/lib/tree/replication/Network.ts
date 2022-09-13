@@ -86,13 +86,13 @@ export class Network {
 	private handleUpdate<T>(node: LeafNode<T>, value: T, source: NetworkActor) {
 		let replicator: Replication.Replicator<LeafNode<T>> = node.getReplicator();
 		let failedMiddleware: Middleware<T> | undefined = node.runMiddleware(
-			node.getPrivateValue() as T,
+			node.get().expect(),
 			value,
 		);
 		if (!failedMiddleware) {
 			node.set(value, source);
 		} else {
-			replicator.replicateUpdateTo(node.get(), source);
+			replicator.replicateUpdateTo(node.get().expect(), source);
 			failedMiddleware.fail();
 		}
 	}

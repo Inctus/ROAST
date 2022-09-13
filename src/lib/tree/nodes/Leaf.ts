@@ -56,17 +56,16 @@ export class LeafNode<T> extends StateNode {
 			this.middleware.clear();
 			this.middleware = middleware;
 		} else {
-			error("Attempt to remove middleware when lacking write permissions");
+			error("Attempt to set middleware when lacking write permissions");
 		}
 		return this;
 	}
 
 	public addMiddleware(middleware: Middleware<T>): this {
 		if (Replication.amOwnerActor(this.getReplicator().getScope())) {
-			this.middleware.clear();
 			this.middleware.push(middleware);
 		} else {
-			error("Attempt to remove middleware when lacking write permissions");
+			error("Attempt to add middleware when lacking write permissions");
 		}
 		return this;
 	}
@@ -86,7 +85,9 @@ export class LeafNode<T> extends StateNode {
 					}
 				} catch (e) {
 					warn(
-						`ROAST - Middleware "${middleware.name}" failed to run for node "${this.name}".`,
+						`ROAST - Middleware "${
+							middleware.name
+						}" failed to run for Node "${this.getFullName()}".`,
 					);
 				}
 			}
