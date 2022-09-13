@@ -14,6 +14,7 @@ export class LeafNode<T> extends StateNode {
 	}
 
 	public subscribe(): this {
+		assert(Replication.canRead(this.replicator.getScope()));
 		if (this.state === NodeStatus.INCONSISTENT) {
 			this.state = NodeStatus.SUBSCRIBING;
 			this.replicator.enqueuePacket(Packet.Subscribe());
