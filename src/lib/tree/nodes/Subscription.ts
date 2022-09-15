@@ -9,40 +9,31 @@ enum subState {
 
 export class NodeSubscription<T> {
 	protected handlers: Array<[subState, SubscriptionCallback<T, unknown>]> = new Array();
-	private returnsStack: never[] = [];
 
-	private errMsg = "";
-	private failed = false;
+	public fire(value: T): void {
+		let errorMessage = "";
+		let failed = false;
+		let returnFrom: unknown;
 
-	public fire(v: T): void {
-		const handlers = this.handlers;
-
-		for (let index = 0; index < handlers.size(); index++) {
-			const [typeOfHandler, handler] = handlers[index];
-
+		for (const [typeOfHandler, handler] of this.handlers) {
 			switch (typeOfHandler) {
 				case subState.THEN:
-					if (!this.failed) {
+					if (!failed) {
 						try {
-							const lastReturn = this.returnsStack[0];
-							const arg = lastReturn !== undefined ? lastReturn : v;
-
-							this.returnsStack.pop();
-							this.returnsStack.push(handler(arg) as never);
+							returnFrom = handler((returnFrom !== undefined ? returnFrom : value) as T);
 						} catch (e) {
-							this.errMsg = e as string;
-							this.failed = true;
+							errorMessage = e as string;
+							failed = true;
 						}
 					}
 
 					continue;
 				case subState.CATCH:
-					if (this.failed && this.errMsg) {
-						this.returnsStack.pop();
-						this.returnsStack.push(handler(this.errMsg as unknown as T) as never);
+					if (failed && errorMessage !== "") {
+						returnFrom = handler(errorMessage as unknown as T);
 
-						this.errMsg = "";
-						this.failed = false;
+						errorMessage = "";
+						failed = false;
 					}
 
 					continue;
@@ -50,14 +41,14 @@ export class NodeSubscription<T> {
 		}
 	}
 
-	public then<X>(v: SubscriptionCallback<T, X>): NodeSubscription<X> {
-		this.handlers.push([subState.THEN, v]);
+	public then<X>(value: SubscriptionCallback<T, X>): NodeSubscription<X> {
+		this.handlers.push([subState.THEN, value]);
 
 		return this as unknown as NodeSubscription<X>;
 	}
 
-	public catch<X>(v: SubscriptionRejected<X>): NodeSubscription<X> {
-		this.handlers.push([subState.CATCH, v as unknown as SubscriptionCallback<T, X>]);
+	public catch<X>(value: SubscriptionRejected<X>): NodeSubscription<X> {
+		this.handlers.push([subState.CATCH, value as unknown as SubscriptionCallback<T, X>]);
 
 		return this as unknown as NodeSubscription<X>;
 	}
