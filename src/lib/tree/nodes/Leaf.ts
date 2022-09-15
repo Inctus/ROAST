@@ -1,3 +1,4 @@
+import { ImmutableLeafNode, ImmutableStateNode } from "../../global/Types";
 import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
 import { NetworkActor, Packet } from "../replication/Packet";
@@ -113,5 +114,13 @@ export class LeafNode<T> extends StateNode {
 			}
 		}
 		return;
+	}
+
+	public generateSnapshot(): ImmutableLeafNode<T> {
+		let cache: T | undefined = this.value;
+		return {
+			name: this.name!,
+			get: () => cache,
+		};
 	}
 }

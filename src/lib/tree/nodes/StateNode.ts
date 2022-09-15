@@ -1,4 +1,4 @@
-import { StateTreeDefinition } from "../../global/Types";
+import { ImmutableIndexableNode, ImmutableStateNode, StateTreeDefinition } from "../../global/Types";
 import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
 import { LeafNode } from "./Leaf";
@@ -34,13 +34,17 @@ export abstract class StateNode {
 	public getFullName(): string {
 		return this.parent?.getFullName() + "/" + this.name;
 	}
+
+	public generateSnapshot(): ImmutableStateNode {
+		return {
+			name: this.name!
+		};
+	}
 }
 
 export abstract class IndexableNode<T extends StateTreeDefinition> extends StateNode {
 	constructor(private readonly substates: T) {
 		super();
-
-		this.substates = substates;
 	}
 
 	public get<K extends keyof T & string>(key: K): T[K] {
@@ -79,5 +83,16 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 			error("Attempt to add middleware when lacking write permissions");
 		}
 		return this;
+	}
+
+	public generateSnapshot(): ImmutableIndexableNode<T> {
+		let snapshots = {} as Record<keyof T, ReturnType<T[keyof T]["generateSnapshot"]>>;
+		for (const [key, substate] of pairs(this.substates as T)) {
+			snapshots[key as keyof T] = (substate as T[keyof T]).generateSnapshot() as ReturnType<T[keyof T]["generateSnapshot"]>;
+		}
+		return {
+			name: this.name!,
+			get: (key: keyof T) => snapshots[key],
+		}
 	}
 }
