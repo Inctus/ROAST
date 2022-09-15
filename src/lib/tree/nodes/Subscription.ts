@@ -1,49 +1,70 @@
-import { LeafNode } from "./Leaf";
+export type SubscriptionRejected<T> = (e: string) => T;
+export type SubscriptionCallback<T, S> = (v: T) => S;
 
-interface Receiver<T> {
-	then<X>(v: (val: T) => X): Receiver<X>;
-
-	catch<X>(v: (err: string) => X): Receiver<X>;
-}
-
-export type SubscriptionRejected = (reason: string) => void;
-export type SubscriptionResolved = (e: any) => void;
-export type NodeSubscriptionFunction<T> = (val: T) => void;
-
-enum subtype {
+enum subState {
 	THEN,
 	CATCH,
 	FAILED,
 }
 
-export type KeyedHandler<T> = [subtype, T];
+export class NodeSubscription<T> {
+	protected handlers: Array<[subState, SubscriptionCallback<T, unknown>]> = new Array();
+	private returnsStack: never[] = [];
 
-export class NodeSubscription<V, T extends LeafNode<V>> {
-	handlers: KeyedHandler<NodeSubscriptionFunction<V>>[] = [];
+	private errMsg = "";
+	private failed = false;
 
-	/** @hidden */
-	public fire() {}
+	public fire(v: T): void {
+		const handlers = this.handlers;
 
-	public then<X>(v: (val: V) => X): Receiver<X> {
-		this.handlers.push([subtype.THEN, v]);
-		return this as unknown as Receiver<X>;
+		for (let index = 0; index < handlers.size(); index++) {
+			const [typeOfHandler, handler] = handlers[index];
+
+			switch (typeOfHandler) {
+				case subState.THEN:
+					if (!this.failed) {
+						try {
+							const lastReturn = this.returnsStack[0];
+							const arg = lastReturn !== undefined ? lastReturn : v;
+
+							this.returnsStack.pop();
+							this.returnsStack.push(handler(arg) as never);
+						} catch (e) {
+							this.errMsg = e as string;
+							this.failed = true;
+						}
+					}
+
+					continue;
+				case subState.CATCH:
+					if (this.failed && this.errMsg) {
+						this.returnsStack.pop();
+						this.returnsStack.push(handler(this.errMsg as unknown as T) as never);
+
+						this.errMsg = "";
+						this.failed = false;
+					}
+
+					continue;
+			}
+		}
 	}
 
-	public catch<X>(v: (err: string) => X): Receiver<X> {
-		return this as unknown as Receiver<X>;
+	public then<X>(v: SubscriptionCallback<T, X>): NodeSubscription<X> {
+		this.handlers.push([subState.THEN, v]);
+
+		return this as unknown as NodeSubscription<X>;
+	}
+
+	public catch<X>(v: SubscriptionRejected<X>): NodeSubscription<X> {
+		this.handlers.push([subState.CATCH, v as unknown as SubscriptionCallback<T, X>]);
+
+		return this as unknown as NodeSubscription<X>;
 	}
 }
 
 export class NodeSubscriptionBuilder {
-	public static build<V>() {
-		return new NodeSubscription<V, LeafNode<V>>();
+	public static build<T>(): NodeSubscription<T> {
+		return new NodeSubscription<T>();
 	}
 }
-
-// .Subscribe([ROAST.SanityCheck.Position])
-// .then((val: LeafNode<number>) => {
-// 	let
-// })
-// .catch(() => {})
-// .then()
-// .then();
