@@ -1,5 +1,4 @@
-import { LeafNode } from "../tree/nodes/Leaf";
-import { IndexableNode, StateNode } from "../tree/nodes/StateNode";
+import { StateNode } from "../tree/nodes/StateNode";
 
 export type StateTreeDefinition = Record<string, StateNode>;
 export type ImmutableStateTreeDefinition = Record<string, ImmutableStateNode>;

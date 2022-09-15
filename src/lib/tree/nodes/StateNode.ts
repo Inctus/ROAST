@@ -14,6 +14,7 @@ export abstract class StateNode {
 	protected readonly replicator: Replication.Replicator<this> =
 		new Replication.Replicator(this);
 	protected state: NodeStatus = NodeStatus.INCONSISTENT;
+	/** @hidden */
 	public parent?: StateNode;
 	public name?: string;
 
