@@ -28,8 +28,8 @@ export abstract class StateNode {
 		return this.replicator;
 	}
 
-	public childChanged() {
-		this.parent?.childChanged();
+	public fire() {
+		this.parent?.fire();
 	}
 
 	public getFullName(): string {
@@ -86,7 +86,7 @@ export abstract class IndexableNode<T extends StateTreeDefinition> extends State
 		return this;
 	}
 
-	public generateSnapshot(): ImmutableIndexableNode<T> {
+	public override generateSnapshot(): ImmutableIndexableNode<T> {
 		let snapshots = {} as Record<keyof T, ReturnType<T[keyof T]["generateSnapshot"]>>;
 		for (const [key, substate] of pairs(this.substates as T)) {
 			snapshots[key as keyof T] = (substate as T[keyof T]).generateSnapshot() as ReturnType<T[keyof T]["generateSnapshot"]>;

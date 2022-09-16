@@ -3,7 +3,7 @@ export enum MiddlewareType {
 	WARNING,
 }
 
-export type MiddlewareCheck<T> = (oldValue: T, newValue: T) => boolean;
+export type MiddlewareCheck<T> = (old: T | undefined, newValue: T) => boolean;
 
 export class Middleware<T> {
 	constructor(
@@ -12,8 +12,8 @@ export class Middleware<T> {
 		private readonly type: MiddlewareType,
 	) {}
 
-	public check(oldValue: T, value: T): boolean {
-		return this.checks.every((check) => check(oldValue, value));
+	public check(old: T | undefined, value: T): boolean {
+		return this.checks.every((check) => check(old, value));
 	}
 
 	public fail() {

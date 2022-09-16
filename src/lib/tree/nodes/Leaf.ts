@@ -3,25 +3,23 @@ import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
 import { NetworkActor, Packet } from "../replication/Packet";
 import { NodeStatus, StateNode } from "./StateNode";
-import { NodeSubscription } from "./Subscription";
 
 export class LeafNode<T> extends StateNode {
 	private middleware: Middleware<T>[] = [];
 	private readonly unresolvedGets: ((value: T) => void)[] = [];
-	// private readonly subscriptions: NodeSubscription<T>[] = [];
+	private readonly subscriptions: ((snapshot: ImmutableLeafNode<T>) => any)[] = [];
 
 	constructor(private value: T | undefined) {
 		super();
 	}
 
-	public subscribe(): this {
+	public subscribe(subscription: (snapshot: ImmutableLeafNode<T>) => any): this {
 		assert(Replication.canRead(this.replicator.getScope()));
 		if (this.state === NodeStatus.INCONSISTENT) {
 			this.state = NodeStatus.SUBSCRIBING;
 			this.replicator.enqueuePacket(Packet.Subscribe());
-			return this;
 		}
-		// ADD SUBSCRIPTION TO LIST OF SUBSCRIPTIONS
+		this.subscriptions.push(subscription);
 		return this;
 	}
 
@@ -30,7 +28,8 @@ export class LeafNode<T> extends StateNode {
 		return new Promise((resolve) => {
 			switch (this.state) {
 				case NodeStatus.INCONSISTENT:
-					this.subscribe();
+					this.state = NodeStatus.SUBSCRIBING;
+					this.replicator.enqueuePacket(Packet.Subscribe());
 				case NodeStatus.SUBSCRIBING:
 					this.unresolvedGets.push(resolve);
 					break;
@@ -47,8 +46,8 @@ export class LeafNode<T> extends StateNode {
 
 	/**
 	 * Sets a new value for the leaf node
-	 * @precondition If the change comes from the Network, node middleware has been ran
-	 * @postcondition The change will be distributed to all observers
+	 * @pre If the change comes from the Network, node middleware has been ran
+	 * @post The change will be distributed to all observers
 	 *
 	 * @param newValue The new value to set
 	 * @hidden @param source The NetworkActor source of the change
@@ -56,10 +55,8 @@ export class LeafNode<T> extends StateNode {
 	 */
 	public set(newValue: T, source: NetworkActor = Replication.getActor()): this {
 		assert(Replication.actorCanWrite(source, this.replicator.getScope()));
-		// TODO -> fire local subscriptions
 		this.value = newValue;
-		// Propagate change upwards
-		this.parent?.childChanged();
+		this.fire();
 		// If I'm of a replicable scope, then replicate the update
 		if (Replication.replicates(this.replicator.getScope())) {
 			this.replicator.replicateUpdateFrom(newValue, source);
@@ -97,7 +94,10 @@ export class LeafNode<T> extends StateNode {
 	 * @returns The failing middleware, if any
 	 * @hidden
 	 */
-	public runMiddleware(oldValue: T, newValue: T): Middleware<T> | undefined {
+	public runMiddleware(
+		oldValue: T | undefined,
+		newValue: T,
+	): Middleware<T> | undefined {
 		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			for (const middleware of this.middleware) {
 				try {
@@ -116,11 +116,19 @@ export class LeafNode<T> extends StateNode {
 		return;
 	}
 
-	public generateSnapshot(): ImmutableLeafNode<T> {
+	public override generateSnapshot(): ImmutableLeafNode<T> {
 		let cache: T | undefined = this.value;
 		return {
 			name: this.name!,
 			get: () => cache,
 		};
+	}
+
+	public override fire() {
+		const snapshot = this.generateSnapshot();
+		for (const subscription of this.subscriptions) {
+			subscription(snapshot);
+		}
+		super.fire();
 	}
 }

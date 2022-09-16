@@ -1,6 +1,6 @@
 import { ReplicatedStorage, RunService } from "@rbxts/services";
 import { Replication } from ".";
-import { StateTreeDefinition } from "../../global/Types";
+import { ImmutableLeafNode, StateTreeDefinition } from "../../global/Types";
 import { BranchNode } from "../nodes/Branch";
 import { LeafNode } from "../nodes/Leaf";
 import { StateNode } from "../nodes/StateNode";
@@ -83,26 +83,47 @@ export class Network {
 		this.networkQueue.clear();
 	}
 
-	private handleUpdate<T>(node: LeafNode<T>, value: T, source: NetworkActor) {
-		let replicator: Replication.Replicator<LeafNode<T>> = node.getReplicator();
-		let failedMiddleware: Middleware<T> | undefined = node.runMiddleware(
-			node.get().expect(),
+	/**
+	 * @pre The node is a LeafNode
+	 *
+	 * @param node The node to update
+	 * @param value The new value of the node
+	 * @param source The NetworkActor who created the update
+	 */
+	private handleUpdate<V>(node: LeafNode<V>, value: V, source: NetworkActor) {
+		let replicator: Replication.Replicator<LeafNode<V>> = node.getReplicator();
+		let failedMiddleware: Middleware<V> | undefined = node.runMiddleware(
+			node.generateSnapshot().get(),
 			value,
 		);
 		if (!failedMiddleware) {
 			node.set(value, source);
 		} else {
+			assert(Replication.amOwnerActor(replicator.getScope()));
+			assert(Replication.getActor() !== source);
 			replicator.replicateUpdateTo(node.get().expect(), source);
 			failedMiddleware.fail();
 		}
 	}
 
-	private handleSubscription<T extends StateNode>(subscriber: NetworkActor, node: T) {
-		let replicator: Replication.Replicator<T> = node.getReplicator();
+	/**
+	 * @post The NetworkActor is now subscribed to the StateNode
+	 *
+	 * @param subscriber The subscriber to add
+	 * @param node The node to subscribe to
+	 */
+	private handleSubscription<N extends StateNode, V>(
+		subscriber: NetworkActor,
+		node: N,
+	) {
+		let replicator = node.getReplicator();
 		if (Replication.amOwnerActor(replicator.getScope())) {
-			if (node instanceof LeafNode) {
+			if (node instanceof LeafNode<infer V>) {
 				replicator.addSubscribedNetworkActor(subscriber);
-				replicator.replicateUpdateTo(node.get(), subscriber);
+				replicator.replicateUpdateTo(
+					(node.generateSnapshot() as ImmutableLeafNode<V>).get(),
+					subscriber,
+				);
 			} else if (node instanceof VineNode) {
 				replicator.addSubscribedNetworkActor(subscriber);
 				//replicator.replicateVineTo(subscriber);
@@ -110,7 +131,7 @@ export class Network {
 				// VINE UPDATE PACKETS
 			} else if (node instanceof BranchNode) {
 				for (const [_, child] of pairs(node.getSubstates())) {
-					this.handleSubscription(subscriber, <StateNode>child);
+					this.handleSubscription(subscriber, child);
 				}
 			} else {
 				error("Attempt to subscribe to non-subscribable node");
