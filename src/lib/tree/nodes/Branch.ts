@@ -1,10 +1,14 @@
-import { ImmutableIndexableNode, StateTreeDefinition } from "../../global/Types";
+import {
+	ImmutableIndexableNode,
+	StateTreeDefinition,
+	Subscription,
+} from "../../global/Types";
 import { Replication } from "../replication";
 import { Packet } from "../replication/Packet";
 import { IndexableNode, NodeStatus } from "./StateNode";
 
 export class BranchNode<T extends StateTreeDefinition> extends IndexableNode<T> {
-	private readonly subscriptions: ((snapshot: ImmutableIndexableNode<T>) => any)[] = [];
+	private readonly subscriptions: Subscription<BranchNode<T>>[] = [];
 
 	constructor(children: T) {
 		super(children);

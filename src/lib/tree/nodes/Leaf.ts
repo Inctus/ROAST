@@ -1,19 +1,19 @@
-import { ImmutableLeafNode, ImmutableStateNode } from "../../global/Types";
+import { ImmutableLeafNode, ImmutableStateNode, Subscription } from "../../global/Types";
 import { Replication } from "../replication";
 import { Middleware } from "../replication/Middleware";
 import { NetworkActor, Packet } from "../replication/Packet";
 import { NodeStatus, StateNode } from "./StateNode";
 
-export class LeafNode<T> extends StateNode {
-	private middleware: Middleware<T>[] = [];
-	private readonly unresolvedGets: ((value: T) => void)[] = [];
-	private readonly subscriptions: ((snapshot: ImmutableLeafNode<T>) => any)[] = [];
+export class LeafNode<V> extends StateNode {
+	private middleware: Middleware<V>[] = [];
+	private readonly unresolvedGets: ((value: V) => void)[] = [];
+	private readonly subscriptions: Subscription<LeafNode<V>>[] = [];
 
-	constructor(private value: T | undefined) {
+	constructor(private value: V | undefined) {
 		super();
 	}
 
-	public subscribe(subscription: (snapshot: ImmutableLeafNode<T>) => any): this {
+	public subscribe(subscription: (snapshot: ImmutableLeafNode<V>) => any): this {
 		assert(Replication.canRead(this.replicator.getScope()));
 		if (this.state === NodeStatus.INCONSISTENT) {
 			this.state = NodeStatus.SUBSCRIBING;
@@ -23,7 +23,7 @@ export class LeafNode<T> extends StateNode {
 		return this;
 	}
 
-	public get(): Promise<T> {
+	public get(): Promise<V> {
 		assert(Replication.canRead(this.replicator.getScope()));
 		return new Promise((resolve) => {
 			switch (this.state) {
@@ -53,7 +53,7 @@ export class LeafNode<T> extends StateNode {
 	 * @hidden @param source The NetworkActor source of the change
 	 * @returns
 	 */
-	public set(newValue: T, source: NetworkActor = Replication.getActor()): this {
+	public set(newValue: V, source: NetworkActor = Replication.getActor()): this {
 		assert(Replication.actorCanWrite(source, this.replicator.getScope()));
 		this.value = newValue;
 		this.fire();
@@ -69,7 +69,7 @@ export class LeafNode<T> extends StateNode {
 	 * @param middleware The middleware to add
 	 * @returns The leaf node
 	 */
-	public setMiddleware(middleware: Middleware<T>[]): this {
+	public setMiddleware(middleware: Middleware<V>[]): this {
 		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			this.middleware.clear();
 			this.middleware = middleware;
@@ -79,7 +79,7 @@ export class LeafNode<T> extends StateNode {
 		return this;
 	}
 
-	public addMiddleware(middleware: Middleware<T>): this {
+	public addMiddleware(middleware: Middleware<V>): this {
 		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			this.middleware.push(middleware);
 		} else {
@@ -95,9 +95,9 @@ export class LeafNode<T> extends StateNode {
 	 * @hidden
 	 */
 	public runMiddleware(
-		oldValue: T | undefined,
-		newValue: T,
-	): Middleware<T> | undefined {
+		oldValue: V | undefined,
+		newValue: V,
+	): Middleware<V> | undefined {
 		if (Replication.amOwnerActor(this.replicator.getScope())) {
 			for (const middleware of this.middleware) {
 				try {
@@ -116,11 +116,12 @@ export class LeafNode<T> extends StateNode {
 		return;
 	}
 
-	public override generateSnapshot(): ImmutableLeafNode<T> {
-		let cache: T | undefined = this.value;
+	public override generateSnapshot(): ImmutableLeafNode<V> {
+		let cache: V | undefined = this.value;
 		return {
 			name: this.name!,
 			get: () => cache,
+			set: this.set,
 		};
 	}
 

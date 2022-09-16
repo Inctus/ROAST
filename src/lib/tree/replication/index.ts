@@ -71,7 +71,7 @@ export namespace Replication {
 		}
 	}
 
-	export class Replicator<T extends StateNode> {
+	export class Replicator<N extends StateNode> {
 		private scope: ScopeIndex = ScopeIndex.UNASSIGNED;
 		private readonly networkQueue: Wrapped<Unsigned<SignablePacket>>[] = [];
 		private readonly subscribedNetworkActors: NetworkActor[] = [];
@@ -82,7 +82,7 @@ export namespace Replication {
 		 * Constructs a new Replicator for a Node
 		 * @hidden
 		 */
-		constructor(private readonly node: T) {
+		constructor(private readonly node: N) {
 			if (RunService.IsServer()) {
 				Players.PlayerRemoving.Connect((p) =>
 					this.removeSubscribedNetworkActor(p),

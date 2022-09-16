@@ -12,4 +12,9 @@ export interface ImmutableIndexableNode<T extends StateTreeDefinition>
 }
 export interface ImmutableLeafNode<V> extends ImmutableStateNode {
 	get(): V | undefined;
+	set(newValue: V): void;
 }
+
+export type Subscription<N extends StateNode> = (
+	snapshot: ReturnType<N["generateSnapshot"]>,
+) => any;
